@@ -1,0 +1,1401 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Our Week</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#f4f6f8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#12151c" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Our Week">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<script src="/config.js"></script>
+<script src="/vendor/supabase-2.118.0.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: a calendar board with Day / Week / Month / Year views. Week view splits into
+   "Plans & chores" and "Dinner" bands; Month view packs everything into week rows. Items are bars that span days. */
+:root {
+  --bg: #f4f6f8;
+  --surface: #ffffff;
+  --ink: #1c2230;
+  --muted: #667085;
+  --line: #e2e6ec;
+  --today: #fff6dc;
+  --out: #f8f9fb;
+  --dinner-bg: #fbf4ea;
+  --dinner-ink: #8a4b14;
+  --dinner-bar: #f3dcc0;
+  --pto-bar: #cdeccf;     /* PTO: light green */
+  --away-bar: #f8cfcf;    /* Out of town: light red */
+  --a: #2f6fd6;      /* person A */
+  --b: #d64f7c;      /* person B */
+  --both: #6c55c9;   /* together */
+  --sel: rgba(47,111,214,.14);
+  --on-color: #ffffff;
+  --shadow: 0 1px 2px rgba(20,30,50,.08), 0 6px 20px rgba(20,30,50,.06);
+  --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Figtree", "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #12151c; --surface: #1a1f29; --ink: #e8ebf2; --muted: #98a1b3; --line: #2a3140;
+  --today: #2a2717; --out: #161a22; --dinner-bg: #1f1b16; --dinner-ink: #f0bf86; --dinner-bar: #4a3520;
+  --pto-bar: #23452a; --away-bar: #552a2c;
+  --a: #5b8ff0; --b: #ec6f98; --both: #8f7ae6; --sel: rgba(91,143,240,.2); --on-color: #0e1118;
+  --shadow: 0 1px 2px rgba(0,0,0,.4); color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #12151c; --surface: #1a1f29; --ink: #e8ebf2; --muted: #98a1b3; --line: #2a3140;
+  --today: #2a2717; --out: #161a22; --dinner-bg: #1f1b16; --dinner-ink: #f0bf86; --dinner-bar: #4a3520;
+  --pto-bar: #23452a; --away-bar: #552a2c;
+  --a: #5b8ff0; --b: #ec6f98; --both: #8f7ae6; --sel: rgba(91,143,240,.2); --on-color: #0e1118;
+  --shadow: 0 1px 2px rgba(0,0,0,.4); color-scheme: dark; }
+:root[data-theme="light"] { color-scheme: light; }
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; font-size: 14px; line-height: 1.4; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 14px; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-block: 20px 40px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+
+header.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 14px 24px; margin-bottom: 14px; }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: 30px; letter-spacing: -.01em; margin: 0; text-wrap: balance; }
+.range { color: var(--muted); font-size: 15px; margin-top: 2px; font-variant-numeric: tabular-nums; }
+.controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.nav { display: flex; gap: 4px; }
+button { font: inherit; color: inherit; cursor: pointer; }
+.btn { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 7px 12px; font-weight: 600; }
+.btn:hover { border-color: var(--muted); }
+.btn.icon { width: 36px; padding: 7px 0; font-size: 16px; line-height: 1; }
+.btn.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.btn.danger { color: var(--b); }
+:focus-visible { outline: 2px solid var(--a); outline-offset: 2px; }
+
+.tabs { display: inline-flex; background: var(--surface); border: 1px solid var(--line); border-radius: 9px; padding: 3px; gap: 2px; }
+.tabs button { border: 0; background: transparent; border-radius: 6px; padding: 5px 11px; font-weight: 600; color: var(--muted); }
+.tabs button:hover { color: var(--ink); }
+.tabs button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.tabs.small button { padding: 4px 9px; font-size: 13px; display: inline-flex; align-items: center; gap: 5px; }
+.tabs svg { width: 14px; height: 14px; }
+
+.subbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; margin-bottom: 12px; }
+.people { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.person { display: inline-flex; align-items: center; gap: 6px; background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px 4px 8px; }
+.dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+.person input { border: 0; background: transparent; font: inherit; font-weight: 600; color: var(--ink); width: 7ch; padding: 0; }
+.person input:focus { outline: none; }
+.person:focus-within { border-color: var(--a); }
+.person.static { font-weight: 600; }
+.summary { display: flex; flex-wrap: wrap; gap: 6px 16px; color: var(--muted); font-size: 13px; }
+.summary b { color: var(--ink); font-variant-numeric: tabular-nums; }
+.subbar .theme { margin-left: auto; }
+.status { color: var(--muted); font-size: 12px; margin: -4px 0 10px; }
+
+.board-scroll { overflow-x: auto; border-radius: 14px; box-shadow: var(--shadow); background: var(--surface); border: 1px solid var(--line); }
+.board { min-width: 720px; }
+.days, .grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.days { border-bottom: 1px solid var(--line); }
+.day { padding: 10px 10px 8px; border-left: 1px solid var(--line); display: flex; align-items: baseline; gap: 6px; border-top: 0; border-right: 0; border-bottom: 0; background: transparent; text-align: left; }
+.day:first-child { border-left: 0; }
+button.day:hover .dd { background: var(--line); }
+.day .dn { text-transform: uppercase; letter-spacing: .08em; font-size: 11px; font-weight: 700; color: var(--muted); }
+.day .dd { font-family: var(--font-display); font-size: 20px; font-weight: 500; font-variant-numeric: tabular-nums; line-height: 1; padding: 3px 6px; border-radius: 8px; }
+.day.today .dd, button.day.today:hover .dd { background: var(--ink); color: var(--bg); }
+.day.today .dn { color: var(--ink); }
+.days.compact .day { padding: 8px 10px; }
+
+.band-head { display: flex; align-items: baseline; gap: 10px; padding: 9px 12px 0; flex-wrap: wrap; }
+.band-head h2 { font-family: var(--font-display); font-size: 15px; font-weight: 700; margin: 0; }
+.band-head .hint { color: var(--muted); font-size: 12px; }
+.band-head.dinner { background: var(--dinner-bg); border-top: 1px solid var(--line); }
+.band-head.dinner h2 { color: var(--dinner-ink); }
+
+.band { position: relative; user-select: none; -webkit-user-select: none; }
+.band.dinner { background: var(--dinner-bg); }
+.band.mrow { border-top: 1px solid var(--line); }
+.band.mrow:first-of-type { border-top: 0; }
+.band .grid { position: absolute; inset: 0; }
+.cell { border-left: 1px solid var(--line); cursor: cell; touch-action: pan-x pan-y; position: relative; }
+.cell:first-child { border-left: 0; }
+.cell.today { background: var(--today); }
+.cell.out { background: var(--out); }
+.cell.out .num { color: var(--muted); opacity: .7; }
+.band.dinner .cell.today { background: color-mix(in srgb, var(--today) 60%, var(--dinner-bg)); }
+.cell.sel { background: var(--sel) !important; }
+.num { position: absolute; top: 5px; left: 6px; border: 0; background: transparent; font-weight: 600; font-size: 12px; padding: 2px 6px; border-radius: 6px; font-variant-numeric: tabular-nums; color: var(--ink); }
+.num:hover { background: var(--line); }
+.cell.today .num { background: var(--ink); color: var(--bg); }
+.items { position: absolute; inset: 0; pointer-events: none; }
+
+.bar { position: absolute; height: var(--bh, 30px); pointer-events: auto; border-radius: 7px; padding: 0 10px; display: flex; align-items: center; gap: 7px;
+  font-weight: 600; font-size: 13px; cursor: grab; touch-action: none; overflow: hidden; white-space: nowrap;
+  background: var(--c); color: var(--on-color); border: 1.5px solid var(--c); transition: box-shadow .12s; }
+.bar.sm { font-size: 12px; padding: 0 7px; gap: 5px; }
+.bar:hover { box-shadow: 0 2px 8px rgba(0,0,0,.18); }
+.bar.dragging { cursor: grabbing; opacity: .85; box-shadow: 0 4px 14px rgba(0,0,0,.25); z-index: 5; }
+.bar .t { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.bar .tm { font-weight: 500; opacity: .85; font-variant-numeric: tabular-nums; flex: none; }
+.bar .ex { font-size: 10px; text-transform: uppercase; letter-spacing: .06em; font-weight: 700; opacity: .7; flex: none; margin-left: auto; }
+.bar.chore { background: var(--surface); color: var(--ink); }
+.chk { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--c); flex: none; display: grid; place-items: center; padding: 0; background: transparent; cursor: pointer; }
+.done .chk { background: var(--c); }
+.done .chk::after { content: ""; width: 4px; height: 8px; border: solid var(--surface); border-width: 0 2px 2px 0; transform: translateY(-1px) rotate(45deg); }
+.bar.sm .chk { width: 13px; height: 13px; }
+.bar.sm.done .chk::after { width: 3px; height: 6px; }
+.done .t { text-decoration: line-through; opacity: .55; }
+.bar.dinner { background: var(--dinner-bar); border-color: var(--dinner-bar); color: var(--ink); }
+.bar.pto { background: var(--pto-bar); border-color: var(--pto-bar); color: var(--ink); }
+.bar.away { background: var(--away-bar); border-color: var(--away-bar); color: var(--ink); }
+.cook { width: 8px; height: 8px; border-radius: 50%; background: var(--c); flex: none; }
+.bar.cut-l { border-top-left-radius: 0; border-bottom-left-radius: 0; }
+.bar.cut-r { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.bar .h { position: absolute; top: 0; bottom: 0; width: 10px; cursor: ew-resize; }
+.bar .h.l { left: 0; } .bar .h.r { right: 0; }
+.bar .h::after { content: ""; position: absolute; top: 25%; bottom: 25%; width: 2px; border-radius: 2px; background: currentColor; opacity: 0; }
+.bar .h.l::after { left: 3px; } .bar .h.r::after { right: 3px; }
+.bar:hover .h::after { opacity: .45; }
+.empty-note { position: absolute; left: 12px; bottom: 10px; color: var(--muted); font-size: 12px; pointer-events: none; }
+
+/* day view */
+.dayview { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 16px; }
+.dv-col { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); padding: 14px; display: grid; gap: 10px; align-content: start; min-width: 0; }
+.dv-col.dinner { background: var(--dinner-bg); }
+.dv-col h2 { font-family: var(--font-display); font-size: 17px; margin: 0; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.dv-col.dinner h2 { color: var(--dinner-ink); }
+.dv-col h2 .btn { font-size: 13px; padding: 5px 10px; font-family: var(--font-body); }
+.card { display: flex; gap: 10px; align-items: flex-start; padding: 11px 12px; border-radius: 10px; background: var(--bg); border: 1px solid var(--line); cursor: pointer; text-align: left; width: 100%; }
+.card:hover { border-color: var(--muted); }
+.card.plan { background: color-mix(in srgb, var(--c) 12%, var(--surface)); border-color: color-mix(in srgb, var(--c) 35%, var(--line)); }
+.card.dinner { background: var(--surface); }
+.card.pto { background: var(--pto-bar); border-color: var(--pto-bar); }
+.card.away { background: var(--away-bar); border-color: var(--away-bar); }
+.card .sw { width: 12px; height: 12px; border-radius: 4px; background: var(--c); flex: none; margin-top: 3px; }
+.card .chk { margin-top: 1px; }
+.card .cook { margin-top: 5px; }
+.card .body { min-width: 0; display: grid; gap: 3px; }
+.card .t { font-weight: 700; font-size: 15px; overflow-wrap: anywhere; }
+.card .meta { color: var(--muted); font-size: 13px; }
+.card .notes { font-size: 13px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.dv-empty { color: var(--muted); padding: 6px 2px; }
+
+/* year view */
+.year { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; }
+.mini { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 12px 10px; min-width: 0; }
+.mini h3 { margin: 0 0 8px; }
+.mini h3 button { border: 0; background: transparent; padding: 0; font-family: var(--font-display); font-size: 16px; font-weight: 700; }
+.mini h3 button:hover { text-decoration: underline; }
+.mini .mg { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px; }
+.mini .wd { font-size: 10px; font-weight: 700; color: var(--muted); text-align: center; padding-bottom: 3px; letter-spacing: .04em; }
+.mini .md { border: 0; background: transparent; border-radius: 6px; padding: 4px 0 3px; font-size: 12px; font-variant-numeric: tabular-nums; display: grid; justify-items: center; gap: 2px; min-height: 30px; }
+.mini .md:hover { background: var(--bg); }
+.mini .md.today span:first-child { background: var(--ink); color: var(--bg); border-radius: 4px; padding: 0 4px; }
+.mini .md .ds { display: flex; gap: 2px; height: 5px; }
+.mini .md .ds i { width: 5px; height: 5px; border-radius: 50%; background: var(--c); }
+.mini .md.busy { font-weight: 700; }
+
+/* shopping list */
+.shop { margin-top: 16px; background: var(--dinner-bg); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); padding: 14px 14px 10px; }
+.shop-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+.shop-head h2 { font-family: var(--font-display); font-size: 17px; margin: 0; color: var(--dinner-ink); }
+.shop-count { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+.shop-clear { margin-left: auto; font-size: 13px; padding: 5px 10px; }
+.shop-add { display: flex; gap: 8px; margin-bottom: 8px; }
+.shop-add input { flex: 1; min-width: 0; font: inherit; font-size: 15px; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 9px; padding: 10px 12px; }
+.shop-cols { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.scol { background: color-mix(in srgb, var(--surface) 55%, var(--dinner-bg)); border: 1px solid var(--line); border-radius: 11px; padding: 10px 10px 6px; min-width: 0; display: flex; flex-direction: column; }
+.scol-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.scol-head h3 { margin: 0; font-family: var(--font-display); font-size: 15px; font-weight: 700; }
+.scol-n { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.scol .shop-add input { font-size: 14px; padding: 8px 10px; }
+.scol .shop-add .btn { padding: 6px 10px; }
+.shop-list { list-style: none; margin: 0; padding: 0; flex: 1; min-height: 44px; border-radius: 8px; }
+.shop-list.over { background: var(--sel); }
+.shop-jump { display: none; gap: 5px; margin: -2px 0 10px; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+.shop-jump button { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 4px 9px; font-size: 12.5px; font-weight: 600; white-space: nowrap; flex: none; }
+.shop-jump button[aria-current="true"] { background: var(--dinner-ink); border-color: var(--dinner-ink); color: var(--dinner-bg); }
+/* narrower screens: one swipeable row instead of stacking, with the next list peeking in */
+@media (max-width: 960px) {
+  .shop-jump { display: flex; }
+  .shop-cols { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: minmax(250px, 46%); overflow-x: auto; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; scrollbar-width: none; padding-bottom: 2px; }
+  .shop-cols::-webkit-scrollbar { display: none; }
+  .scol { scroll-snap-align: start; }
+}
+@media (max-width: 560px) { .shop-cols { grid-auto-columns: 84%; } }
+.si { display: flex; align-items: center; gap: 4px; break-inside: avoid; border-bottom: 1px solid var(--line); }
+.si-chk { flex: 1; min-width: 0; display: flex; align-items: center; gap: 9px; border: 0; background: transparent; padding: 9px 2px; text-align: left; font-size: 14px; min-height: 44px; }
+.si-chk .box { width: 20px; height: 20px; border-radius: 6px; border: 2px solid var(--dinner-ink); flex: none; display: grid; place-items: center; }
+.si.done .box { background: var(--dinner-ink); }
+.si.done .box::after { content: ""; width: 5px; height: 10px; border: solid var(--dinner-bg); border-width: 0 2px 2px 0; transform: translateY(-1px) rotate(45deg); }
+.si-chk .txt { overflow-wrap: anywhere; }
+.si.done .txt { text-decoration: line-through; color: var(--muted); }
+.si-grip { border: 0; background: transparent; width: 22px; height: 40px; flex: none; display: grid; place-items: center; color: var(--muted); cursor: grab; touch-action: none; padding: 0; border-radius: 6px; }
+.si-grip svg { width: 10px; height: 16px; fill: currentColor; }
+.si-grip:hover { color: var(--ink); background: var(--surface); }
+.si-grip-sp { width: 22px; flex: none; }
+.si.dragging { background: var(--surface); box-shadow: 0 4px 14px rgba(0,0,0,.15); border-radius: 8px; position: relative; z-index: 2; }
+.si.dragging .si-grip { cursor: grabbing; }
+.si-del { border: 0; background: transparent; color: var(--muted); width: 30px; height: 36px; border-radius: 8px; font-size: 18px; line-height: 1; flex: none; }
+.si-del:hover { background: var(--surface); color: var(--ink); }
+.shop-empty { color: var(--muted); padding: 6px 2px 8px; font-size: 13px; }
+.foot { color: var(--muted); font-size: 12px; margin-top: 12px; line-height: 1.6; }
+
+/* editor */
+.scrim { position: fixed; inset: 0; background: rgba(10,14,22,.45); display: grid; place-items: center; z-index: 50;
+  padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
+.sheet { background: var(--surface); color: var(--ink); border-radius: 14px; width: min(440px, 100%); max-height: 100%; overflow: auto; padding: 18px 18px 16px; box-shadow: 0 20px 60px rgba(0,0,0,.3); }
+.sheet h3 { font-family: var(--font-display); margin: 0 0 14px; font-size: 19px; }
+.f { display: grid; gap: 5px; margin-bottom: 12px; }
+.f label, .lbl { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+.f input, .f textarea { font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 9px 10px; width: 100%; }
+.f textarea { min-height: 60px; resize: vertical; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.seg { display: flex; gap: 4px; flex-wrap: wrap; }
+.seg button { border: 1px solid var(--line); background: var(--bg); border-radius: 8px; padding: 7px 11px; font-weight: 600; display: inline-flex; gap: 6px; align-items: center; }
+.seg button[aria-pressed="true"] { border-color: var(--ink); background: var(--ink); color: var(--bg); }
+.actions { display: flex; gap: 8px; align-items: center; margin-top: 6px; flex-wrap: wrap; }
+.actions .sp { flex: 1; }
+.err { color: var(--b); font-size: 13px; min-height: 1em; }
+.repeat { display: grid; gap: 10px; margin-top: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); }
+.dows { display: flex; gap: 6px; flex-wrap: wrap; }
+.dows button { width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); font-weight: 700; font-size: 13px; padding: 0; }
+.dows button[aria-pressed="true"] { background: var(--a); border-color: var(--a); color: var(--on-color); }
+.presets { display: flex; gap: 12px; }
+.presets button { border: 0; background: transparent; padding: 0; color: var(--a); font-weight: 600; font-size: 13px; }
+.presets button:hover { text-decoration: underline; }
+.rep-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; font-size: 13px; }
+.rep-row label { font-weight: 600; text-transform: none; letter-spacing: 0; font-size: 13px; color: var(--ink); }
+.rep-row input { font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 7px; padding: 5px 7px; }
+.rep-row input[type=number] { width: 4.2em; }
+.rep-row label[for=fUntil] { margin-left: 8px; }
+.rep-row .hint { color: var(--muted); font-size: 12px; }
+.time-hint { color: var(--muted); font-size: 12px; margin: -6px 0 12px; }
+.time-hint:empty { display: none; }
+.gcal-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 2px 0 10px; padding-top: 12px; border-top: 1px solid var(--line); }
+.gcal { display: inline-flex; align-items: center; gap: 7px; text-decoration: none; color: var(--ink); }
+.gcal svg { width: 16px; height: 16px; color: var(--a); }
+.gcal-row .hint { color: var(--muted); font-size: 12px; }
+.scope { display: grid; gap: 8px; margin-bottom: 6px; }
+.scope .btn { text-align: left; padding: 11px 14px; }
+.bar .rep { flex: none; opacity: .75; font-size: 12px; }
+.bar.tall { white-space: normal; padding: 4px 9px; line-height: 1.22; }
+.bar.tall .t { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow-wrap: anywhere; }
+.bar.tall.dinner .t { -webkit-line-clamp: 2; }
+
+/* password screen + account */
+.gate { min-height: 100vh; min-height: 100dvh; display: grid; place-items: center; padding-block: 24px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.gate-card { width: min(380px, 100%); background: var(--surface); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow); padding: 24px 22px 20px; display: grid; gap: 10px; }
+.gate-card h1 { font-size: 28px; }
+.gate-card p { margin: 0 0 6px; color: var(--muted); line-height: 1.5; }
+.gate-card label { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+.gate-card input { font: inherit; font-size: 16px; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 9px; padding: 11px 12px; width: 100%; }
+.gate-card .btn { padding: 11px 14px; font-size: 15px; }
+.gate-card code { font-size: 12px; background: var(--bg); padding: 1px 5px; border-radius: 5px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.acct-btn { font-size: 13px; padding: 5px 10px; }
+.acct-list { display: grid; gap: 8px; }
+.acct-list .btn { text-align: left; padding: 11px 14px; }
+.acct-list .btn small { display: block; font-weight: 500; color: var(--muted); margin-top: 2px; }
+@media (max-width: 720px) { .dayview { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 560px) { h1 { font-size: 25px; } .subbar .theme { margin-left: 0; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+
+
+<div class="gate" id="gate" hidden>
+  <form class="gate-card" id="gateForm" autocomplete="on">
+    <h1>Our Week</h1>
+    <p id="gateMsg">Enter your shared password. This device stays signed in after that.</p>
+    <input class="sr-only" type="email" id="gateUser" name="username" autocomplete="username" tabindex="-1" aria-hidden="true">
+    <label for="gatePw">Password</label>
+    <input type="password" id="gatePw" name="password" autocomplete="current-password" required>
+    <div class="err" id="gateErr" role="alert"></div>
+    <button type="submit" class="btn primary" id="gateBtn">Unlock</button>
+  </form>
+</div>
+
+<div class="wrap" id="app" hidden>
+  <header class="top">
+    <div>
+      <h1>Our Week</h1>
+      <div class="range" id="range"></div>
+    </div>
+    <div class="controls">
+      <div class="tabs" id="viewTabs" role="group" aria-label="View">
+        <button type="button" data-v="day">Day</button>
+        <button type="button" data-v="week">Week</button>
+        <button type="button" data-v="month">Month</button>
+        <button type="button" data-v="year">Year</button>
+      </div>
+      <div class="nav">
+        <button class="btn icon" id="prev" aria-label="Previous">‹</button>
+        <button class="btn" id="todayBtn">Today</button>
+        <button class="btn icon" id="next" aria-label="Next">›</button>
+      </div>
+      <button class="btn primary" id="addBtn">+ Add</button>
+    </div>
+  </header>
+
+  <div class="subbar">
+    <div class="people" aria-label="Who">
+      <span class="person"><span class="dot" style="background:var(--a)"></span><input id="nameA" aria-label="First person's name" maxlength="14"></span>
+      <span class="person"><span class="dot" style="background:var(--b)"></span><input id="nameB" aria-label="Second person's name" maxlength="14"></span>
+      <span class="person static"><span class="dot" style="background:var(--both)"></span>Both</span>
+    </div>
+    <div class="summary" id="summary"></div>
+    <div class="tabs small theme" id="themeTabs" role="group" aria-label="Theme">
+      <button type="button" data-v="light"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>Light</button>
+      <button type="button" data-v="dark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>Dark</button>
+      <button type="button" data-v="auto">Auto</button>
+    </div>
+    <button type="button" class="btn acct-btn" id="acctBtn">Sign out</button>
+  </div>
+  <div class="status" id="status"></div>
+
+  <div id="view"></div>
+  <section class="shop" id="shop" aria-labelledby="shopTitle">
+    <div class="shop-head">
+      <h2 id="shopTitle">Shopping list</h2>
+      <span class="shop-count" id="shopCount"></span>
+      <button type="button" class="btn shop-clear" id="shopClear" hidden>Remove checked</button>
+    </div>
+    <div class="shop-jump" id="shopJump" role="group" aria-label="Jump to list"><button type="button" data-j="0">General</button><button type="button" data-j="1">Grocery</button><button type="button" data-j="2">Costco</button><button type="button" data-j="3">Long Term</button></div>
+    <div class="shop-cols" id="shopCols">
+      <div class="scol" data-list="general">
+        <div class="scol-head"><h3>General</h3><span class="scol-n" id="shopN-general"></span></div>
+        <form class="shop-add" data-list="general" autocomplete="off"><input id="shopIn-general" maxlength="120" placeholder="Paper towels, batteries" aria-label="Add to General"><button type="submit" class="btn primary" aria-label="Add to General">Add</button></form>
+        <ul class="shop-list" data-list="general" id="shopList-general"></ul>
+      </div>
+      <div class="scol" data-list="grocery">
+        <div class="scol-head"><h3>Grocery</h3><span class="scol-n" id="shopN-grocery"></span></div>
+        <form class="shop-add" data-list="grocery" autocomplete="off"><input id="shopIn-grocery" maxlength="120" placeholder="Eggs, milk, limes" aria-label="Add to Grocery"><button type="submit" class="btn primary" aria-label="Add to Grocery">Add</button></form>
+        <ul class="shop-list" data-list="grocery" id="shopList-grocery"></ul>
+      </div>
+      <div class="scol" data-list="costco">
+        <div class="scol-head"><h3>Costco</h3><span class="scol-n" id="shopN-costco"></span></div>
+        <form class="shop-add" data-list="costco" autocomplete="off"><input id="shopIn-costco" maxlength="120" placeholder="Coffee, olive oil" aria-label="Add to Costco"><button type="submit" class="btn primary" aria-label="Add to Costco">Add</button></form>
+        <ul class="shop-list" data-list="costco" id="shopList-costco"></ul>
+      </div>
+      <div class="scol" data-list="longterm">
+        <div class="scol-head"><h3>Long Term</h3><span class="scol-n" id="shopN-longterm"></span></div>
+        <form class="shop-add" data-list="longterm" autocomplete="off"><input id="shopIn-longterm" maxlength="120" placeholder="New pan, air fryer" aria-label="Add to Long Term"><button type="submit" class="btn primary" aria-label="Add to Long Term">Add</button></form>
+        <ul class="shop-list" data-list="longterm" id="shopList-longterm"></ul>
+      </div>
+    </div>
+  </section>
+  <p class="foot" id="foot"></p>
+</div>
+
+<div class="scrim" id="acct" hidden>
+  <div class="sheet" role="dialog" aria-labelledby="acctTitle">
+    <h3 id="acctTitle">Sign out</h3>
+    <div class="acct-list">
+      <button type="button" class="btn" id="outHere">Sign out this device<small>You'll need the password to get back in here.</small></button>
+      <button type="button" class="btn danger" id="outAll">Sign out all devices<small>Use this if a phone is lost. Every device needs the password again.</small></button>
+    </div>
+    <div class="err" id="acctErr"></div>
+    <div class="actions"><span class="sp"></span><button type="button" class="btn" id="acctCancel">Cancel</button></div>
+  </div>
+</div>
+
+<div class="scrim" id="scrim" hidden>
+  <form class="sheet" id="editor" autocomplete="off">
+    <div id="scopeBox" hidden>
+      <h3 id="scopeTitle">Save changes to repeating item</h3>
+      <div class="scope">
+        <button type="button" class="btn" data-scope="this">This event</button>
+        <button type="button" class="btn" data-scope="following">This and following events</button>
+        <button type="button" class="btn" data-scope="all">All events</button>
+      </div>
+      <div class="actions"><button type="button" class="btn" id="scopeBack">Back</button></div>
+    </div>
+    <div id="formBody">
+    <h3 id="edTitle">New item</h3>
+    <div class="f"><label for="fTitle">What</label><input id="fTitle" required maxlength="80" placeholder="Vacuum living room, date night, tacos…"></div>
+    <div class="f"><span class="lbl">Type</span><div class="seg" id="fKind"></div></div>
+    <div class="f"><span class="lbl" id="whoLbl">Who</span><div class="seg" id="fWho"></div></div>
+    <div class="row2">
+      <div class="f"><label for="fStart">From</label><input type="date" id="fStart" required></div>
+      <div class="f"><label for="fEnd">To</label><input type="date" id="fEnd" required></div>
+    </div>
+    <div class="f"><span class="lbl">Repeat</span><div class="seg" id="fRepeat"></div>
+      <div class="repeat" id="repeatBox" hidden>
+        <div class="dows" id="fDows" role="group" aria-label="Repeat on"></div>
+        <div class="presets" id="presets"><button type="button" data-p="weekdays">Weekdays</button><button type="button" data-p="daily">Every day</button></div>
+        <div class="rep-row">
+          <label for="fEvery">Every</label><input type="number" id="fEvery" min="1" max="12" value="1"><span>week(s)</span>
+          <label for="fUntil">Ends</label><input type="date" id="fUntil" aria-describedby="untilHint"><span class="hint" id="untilHint">blank = never</span>
+        </div>
+      </div>
+    </div>
+    <div class="row2">
+      <div class="f"><label for="fTStart">Start time</label><input type="time" id="fTStart" step="300"></div>
+      <div class="f"><label for="fTEnd">End time</label><input type="time" id="fTEnd" step="300"></div>
+    </div>
+    <div class="time-hint" id="timeHint"></div>
+    <div class="f"><label for="fNotes">Notes</label><textarea id="fNotes" maxlength="500" placeholder="Grocery list, details…"></textarea></div>
+    <div class="gcal-row"><a class="btn gcal" id="gcalBtn" href="https://calendar.google.com/calendar/render" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4M12 12.5v5M9.5 15h5"/></svg><span id="gcalLbl">Add to Google Calendar</span></a><span class="hint" id="gcalHint"></span></div>
+    <div class="err" id="fErr"></div>
+    <div class="actions">
+      <button type="button" class="btn danger" id="delBtn">Delete</button>
+      <span class="sp"></span>
+      <button type="button" class="btn" id="cancelBtn">Cancel</button>
+      <button type="submit" class="btn primary" id="saveBtn">Save</button>
+    </div>
+    </div>
+  </form>
+</div>
+
+<script>
+(() => {
+  // ---------- dates ----------
+  const pad = n => String(n).padStart(2, "0");
+  const iso = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const parse = s => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); };
+  const addDays = (s, n) => { const d = parse(s); d.setDate(d.getDate() + n); return iso(d); };
+  const diff = (a, b) => { const A = parse(a), B = parse(b); return Math.round((Date.UTC(B.getFullYear(), B.getMonth(), B.getDate()) - Date.UTC(A.getFullYear(), A.getMonth(), A.getDate())) / 864e5); };
+  // weeks display Sunday-first; mondayOf stays for every-N-weeks math (matches Google's default week start)
+  const sundayOf = s => { const d = parse(s); d.setDate(d.getDate() - d.getDay()); return iso(d); };
+  const mondayOf = s => { const d = parse(s); d.setDate(d.getDate() - (d.getDay() + 6) % 7); return iso(d); };
+  const monthStart = s => s.slice(0, 8) + "01";
+  const monthEnd = s => { const d = parse(monthStart(s)); d.setMonth(d.getMonth() + 1); d.setDate(0); return iso(d); };
+  const addMonths = (s, n) => { const d = parse(monthStart(s)); d.setMonth(d.getMonth() + n); return iso(d); };
+  const todayISO = () => iso(new Date());
+  const MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+  const DOW = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  const DOWL = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+  const fmt = s => { const d = parse(s); return `${MON[d.getMonth()]} ${d.getDate()}`; };
+  const fmtSpan = (a, b) => a === b ? fmt(a) : `${fmt(a)} – ${fmt(b)}`;
+
+  // ---------- prefs (per viewer) ----------
+  const store = {
+    get(k) { try { return localStorage.getItem(k); } catch (_) { return null; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch (_) {} },
+  };
+  const root = document.documentElement;
+  const hostTheme = root.getAttribute("data-theme");
+  function applyTheme(t) {
+    if (t === "light" || t === "dark") root.setAttribute("data-theme", t);
+    else if (hostTheme) root.setAttribute("data-theme", hostTheme);
+    else root.removeAttribute("data-theme");
+    document.querySelectorAll("#themeTabs button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.v === t)));
+  }
+  let theme = store.get("our-week-theme") || "auto";
+  applyTheme(theme);
+
+  // ---------- state ----------
+  const VIEWS = ["day", "week", "month", "year"];
+  const S = {
+    items: new Map(),
+    shop: new Map(),
+    names: { a: "Him", b: "Her" },
+    view: VIEWS.includes(store.get("our-week-view")) ? store.get("our-week-view") : "week",
+    cursor: todayISO(),
+    mode: "loading", // loading | db | local
+    db: null,
+  };
+  const LS_KEY = "our-week-local-v1";
+  const uid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
+
+  function loadLocal() {
+    try { const j = JSON.parse(localStorage.getItem(LS_KEY) || "null"); if (j) { S.names = j.names || S.names; S.items = new Map((j.items || []).map(i => [i.id, i])); S.shop = new Map((j.shopping || []).map(i => [i.id, i])); } } catch (e) {}
+  }
+  function saveLocal() { store.set(LS_KEY, JSON.stringify({ names: S.names, items: [...S.items.values()], shopping: [...S.shop.values()] })); }
+  function clean(it) {
+    const o = { title: it.title, kind: it.kind, who: it.who, start: it.start, end: it.end, time: it.time || "", tStart: it.tStart || "", tEnd: it.tEnd || "", notes: it.notes || "", done: !!it.done, updated: Date.now() };
+    if (it.example) o.example = true;
+    if (it.repeat) { o.repeat = { days: it.repeat.days, every: it.repeat.every || 1, until: it.repeat.until || "" }; o.exceptions = it.exceptions || {}; o.doneDates = it.doneDates || {}; }
+    if (it.group) o.group = it.group;
+    return o;
+  }
+  // Recurring series: one stored doc with repeat {days: [0-6, Sun=0], every: N weeks, until}.
+  // Each date it lands on becomes a virtual occurrence with id "<seriesId>@<date>".
+  function occurrenceOf(s, d) {
+    const len = diff(s.start, s.end);
+    return { ...s, id: s.id + "@" + d, seriesId: s.id, occ: d, start: d, end: addDays(d, len), done: !!(s.doneDates && s.doneDates[d]) };
+  }
+  function seriesHits(s, d) {
+    const r = s.repeat;
+    if (d < s.start || (r.until && d > r.until) || (s.exceptions && s.exceptions[d])) return false;
+    if (!r.days.includes(parse(d).getDay())) return false;
+    const wk = Math.round(diff(mondayOf(s.start), mondayOf(d)) / 7);
+    return wk % (r.every || 1) === 0;
+  }
+  function expand(it, a, b) {
+    if (!it.repeat || !it.repeat.days || !it.repeat.days.length) return [it];
+    const len = diff(it.start, it.end), out = [];
+    let d = addDays(a, -len); if (d < it.start) d = it.start;
+    let e = b; if (it.repeat.until && it.repeat.until < e) e = it.repeat.until;
+    for (; d <= e; d = addDays(d, 1)) if (seriesHits(it, d)) out.push(occurrenceOf(it, d));
+    return out;
+  }
+  function getItem(id) {
+    if (S.items.has(id)) return S.items.get(id);
+    const at = id.lastIndexOf("@"); if (at < 0) return null;
+    const s = S.items.get(id.slice(0, at)); if (!s || !s.repeat) return null;
+    return occurrenceOf(s, id.slice(at + 1));
+  }
+  const groupOf = it => it.group || it.id;
+  const DOW1 = ["S", "M", "T", "W", "T", "F", "S"], DOWS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  function repeatText(r) {
+    if (!r) return "";
+    const days = [...r.days].sort((x, y) => x - y);
+    const list = days.length === 7 ? "every day" : days.join() === "1,2,3,4,5" ? "weekdays" : days.map(x => DOWS[x]).join(", ");
+    const every = (r.every || 1) > 1 ? `Every ${r.every} weeks` : "Weekly";
+    return `${every} · ${list}${r.until ? ` until ${fmt(r.until)}` : ""}`;
+  }
+  function persist(it) {
+    S.items.set(it.id, it); render();
+    if (S.mode === "db") S.db.doc("items/" + it.id).set(clean(it)).catch(onWriteErr);
+    else saveLocal();
+  }
+  function remove(id) {
+    S.items.delete(id); render();
+    if (S.mode === "db") S.db.doc("items/" + id).delete().catch(onWriteErr);
+    else saveLocal();
+  }
+  function saveNames() {
+    if (S.mode === "db") S.db.doc("settings/names").set({ a: S.names.a, b: S.names.b }).catch(onWriteErr);
+    else saveLocal();
+    render();
+  }
+  let statusMsg = "";
+  function onWriteErr(e) {
+    statusMsg = e && (e.code === "permission_denied" || e.code === "not_granted") ? "You can view this planner but not change it. Ask for edit access." : "Couldn't save that change. Check your connection and try again.";
+    renderStatus();
+  }
+
+  // ---------- helpers ----------
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const color = who => who === "a" ? "var(--a)" : who === "b" ? "var(--b)" : "var(--both)";
+  const whoName = who => who === "a" ? S.names.a : who === "b" ? S.names.b : "Both";
+  const itemNow = it => (drag && drag.preview && drag.id === it.id) ? { ...it, ...drag.preview } : it;
+  // times are "HH:MM" (24h); older items may only have a free-text `time`
+  function fmtClock(t) { const [h, m] = t.split(":").map(Number); const ap = h < 12 ? "am" : "pm", h12 = h % 12 || 12; return m ? `${h12}:${pad(m)} ${ap}` : `${h12} ${ap}`; }
+  function timeLabel(it) {
+    if (it.tStart) return it.tEnd ? `${fmtClock(it.tStart)} – ${fmtClock(it.tEnd)}` : fmtClock(it.tStart);
+    return it.time || "";
+  }
+  const timeKey = it => it.tStart || "~";
+  function parseLegacyTime(str) {
+    const m = String(str || "").trim().toLowerCase().match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm|a|p)?$/);
+    if (!m) return "";
+    let h = +m[1]; const min = +(m[2] || 0); const ap = m[3];
+    if (h > 23 || min > 59) return "";
+    if (ap) { if (h > 12) return ""; if (ap[0] === "p" && h < 12) h += 12; if (ap[0] === "a" && h === 12) h = 0; }
+    else if (h < 7) h += 12; // "5" usually means 5 pm for evening plans
+    return `${pad(h)}:${pad(min)}`;
+  }
+  function inRange(a, b) {
+    const out = [];
+    for (const base of S.items.values()) for (let it of expand(base, a, b)) { it = itemNow(it); if (it.start <= b && it.end >= a) out.push(it); }
+    return out;
+  }
+
+  function viewRange() {
+    const c = S.cursor;
+    if (S.view === "day") return [c, c];
+    if (S.view === "week") { const m = sundayOf(c); return [m, addDays(m, 6)]; }
+    if (S.view === "month") return [monthStart(c), monthEnd(c)];
+    const y = c.slice(0, 4); return [`${y}-01-01`, `${y}-12-31`];
+  }
+
+  // ---------- bands (rows of 7 days with spanning bars) ----------
+  let bands = new Map(); // key -> {start, end, kinds, minLanes, top, bh, small}
+  function bandHTML(key, cfg, extraClass, cellFn) {
+    bands.set(key, cfg);
+    const t = todayISO();
+    let cells = "";
+    for (let i = 0; i < 7; i++) { const d = addDays(cfg.start, i); cells += `<div class="cell${d === t ? " today" : ""}${cellFn ? cellFn(d) : ""}" data-date="${d}">${cfg.nums ? `<button type="button" class="num" data-act="day" data-date="${d}" aria-label="Open ${fmt(d)}">${parse(d).getDate()}</button>` : ""}</div>`; }
+    return `<div class="band ${extraClass}" data-key="${key}"><div class="grid">${cells}</div><div class="items"></div></div>`;
+  }
+  function pack(list) {
+    const lanes = [];
+    for (const o of list) {
+      let l = lanes.findIndex(occ => occ.every(([a, b]) => o.c1 < a || o.c0 > b));
+      if (l === -1) { l = lanes.length; lanes.push([]); }
+      lanes[l].push([o.c0, o.c1]); o.lane = l;
+    }
+    return lanes.length;
+  }
+  function renderBandItems(key) {
+    const cfg = bands.get(key); const el = document.querySelector(`.band[data-key="${key}"]`);
+    if (!cfg || !el) return;
+    const list = inRange(cfg.start, cfg.end)
+      .filter(it => cfg.kinds === "all" || (cfg.kinds === "dinner") === (it.kind === "dinner"))
+      .map(it => ({ it, c0: Math.max(0, diff(cfg.start, it.start)), c1: Math.min(6, diff(cfg.start, it.end)) }));
+    const rank = k => k === "dinner" ? 2 : (k === "away" || k === "pto") ? 0 : 1;
+    list.sort((x, y) => rank(x.it.kind) - rank(y.it.kind) || x.c0 - y.c0 || (y.c1 - y.c0) - (x.c1 - x.c0) || timeKey(x.it).localeCompare(timeKey(y.it)) || x.it.title.localeCompare(y.it.title));
+    const n = pack(list);
+    const step = cfg.bh + 4;
+    el.style.height = (cfg.top + Math.max(cfg.minLanes, n + (cfg.spare ? 1 : 0)) * step + 6) + "px";
+    el.querySelector(".items").innerHTML = list.map(({ it, c0, c1, lane }) => {
+      const cl = it.start < cfg.start, cr = it.end > cfg.end, k = it.kind;
+      const pre = k === "chore" ? `<button type="button" class="chk" data-act="toggle" aria-label="${it.done ? "Mark not done" : "Mark done"}"></button>`
+        : k === "dinner" ? `<span class="cook" title="${esc(whoName(it.who))} cooks"></span>`
+        : (k === "pto" || k === "away") ? `<span class="cook" title="${esc(whoName(it.who))}"></span>` : "";
+      return `<div class="bar ${k}${cfg.small ? " sm" : ""}${cfg.tall ? " tall" : ""}${it.done ? " done" : ""}${cl ? " cut-l" : ""}${cr ? " cut-r" : ""}${drag && drag.id === it.id ? " dragging" : ""}"
+        data-id="${esc(it.id)}" tabindex="0" role="button" aria-label="${esc(it.title)}, ${esc(whoName(it.who))}" title="${esc(it.title)}${timeLabel(it) ? " · " + esc(timeLabel(it)) : ""}"
+        style="--c:${color(it.who)};--bh:${cfg.bh}px;left:calc(${(c0 / 7) * 100}% + 3px);width:calc(${((c1 - c0 + 1) / 7) * 100}% - 6px);top:${cfg.top + lane * step}px">
+        ${pre}<span class="t">${esc(it.title)}</span>${it.seriesId ? `<span class="rep" title="Repeats" aria-label="Repeats">↻</span>` : ""}
+        <span class="h l" data-act="rl"></span><span class="h r" data-act="rr"></span></div>`;
+    }).join("") + (cfg.emptyNote && list.length === 0 ? `<div class="empty-note">${S.mode === "loading" ? "Loading your week…" : cfg.emptyNote}</div>` : "");
+  }
+  const renderAllBands = () => { for (const k of bands.keys()) renderBandItems(k); };
+
+  // ---------- views ----------
+  function daysHeader(start, clickable, compact) {
+    const t = todayISO();
+    return `<div class="days${compact ? " compact" : ""}">` + Array.from({ length: 7 }, (_, i) => {
+      const d = addDays(start, i);
+      if (!clickable) return `<div class="day"><span class="dn">${DOW[i]}</span></div>`;
+      return `<button type="button" class="day${d === t ? " today" : ""}" data-act="day" data-date="${d}"><span class="dn">${DOW[i]}</span><span class="dd">${parse(d).getDate()}</span></button>`;
+    }).join("") + `</div>`;
+  }
+  function renderWeek() {
+    const m = sundayOf(S.cursor);
+    bands = new Map();
+    $("view").innerHTML = `<div class="board-scroll"><div class="board">${daysHeader(m, true)}
+      <div class="band-head"><h2>Plans &amp; chores</h2><span class="hint">Drag across days to add · drag the ends to stretch</span></div>
+      ${bandHTML("w-plan", { start: m, end: addDays(m, 6), kinds: "plan", minLanes: 5, top: 8, bh: 56, tall: true, spare: true, emptyNote: "Nothing planned yet. Drag across a few days to add something." }, "plan")}
+      <div class="band-head dinner"><h2>Dinner</h2><span class="hint">Leftovers? Stretch it over two nights</span></div>
+      ${bandHTML("w-dinner", { start: m, end: addDays(m, 6), kinds: "dinner", minLanes: 1, top: 8, bh: 44, tall: true, spare: true }, "dinner")}
+      </div></div>`;
+    renderAllBands();
+    $("foot").textContent = "Click a day to add something for it, or click a date to open that day. Click an item to edit it, tick the circle to finish a chore. Changes save automatically for both of you.";
+  }
+  function renderMonth() {
+    const ms = monthStart(S.cursor), me = monthEnd(S.cursor);
+    let w = sundayOf(ms); const rows = [];
+    bands = new Map();
+    while (w <= me) {
+      rows.push(bandHTML("m-" + w, { start: w, end: addDays(w, 6), kinds: "all", minLanes: 3, top: 30, bh: 22, small: true, nums: true }, "mrow", d => (d < ms || d > me) ? " out" : ""));
+      w = addDays(w, 7);
+    }
+    $("view").innerHTML = `<div class="board-scroll"><div class="board">${daysHeader(sundayOf(ms), false, true)}${rows.join("")}</div></div>`;
+    renderAllBands();
+    $("foot").textContent = "Drag across days to add something, including across weeks. Drag an item or its ends to move or stretch it. Click a date number to open that day. Dinners sit below plans and chores.";
+  }
+  function card(it) {
+    const k = it.kind, span = it.start !== it.end ? `${fmtSpan(it.start, it.end)} · day ${diff(it.start, S.cursor) + 1} of ${diff(it.start, it.end) + 1}` : "";
+    const meta = [timeLabel(it), k === "dinner" ? (it.who === "both" ? "Cooking together" : `${whoName(it.who)} cooks`) : whoName(it.who), k === "chore" ? "Chore" : k === "pto" ? "PTO" : k === "away" ? "Out of town" : "", it.seriesId ? repeatText(it.repeat) : "", span, it.example ? "Example" : ""].filter(Boolean).map(esc).join(" · ");
+    const pre = k === "chore" ? `<button type="button" class="chk" data-act="toggle" aria-label="${it.done ? "Mark not done" : "Mark done"}"></button>`
+      : (k === "dinner" || k === "pto" || k === "away") ? `<span class="cook"></span>` : `<span class="sw"></span>`;
+    return `<div class="card ${k}${it.done ? " done" : ""}" data-id="${esc(it.id)}" data-act="open" tabindex="0" role="button" style="--c:${color(it.who)}">${pre}
+      <div class="body"><div class="t">${esc(it.title)}</div><div class="meta">${meta}</div>${it.notes ? `<div class="notes">${esc(it.notes)}</div>` : ""}</div></div>`;
+  }
+  function renderDay() {
+    const d = S.cursor;
+    bands = new Map();
+    const dr = k => (k === "away" || k === "pto") ? 0 : k === "chore" ? 2 : 1;
+    const list = inRange(d, d).sort((x, y) => dr(x.kind) - dr(y.kind) || timeKey(x).localeCompare(timeKey(y)) || x.title.localeCompare(y.title));
+    const main = list.filter(i => i.kind !== "dinner"), din = list.filter(i => i.kind === "dinner");
+    $("view").innerHTML = `<div class="dayview">
+      <section class="dv-col"><h2>Plans &amp; chores <button type="button" class="btn" data-act="add" data-kind="plan">+ Add</button></h2>
+        ${main.length ? main.map(card).join("") : `<div class="dv-empty">${S.mode === "loading" ? "Loading…" : "Nothing planned for this day."}</div>`}</section>
+      <section class="dv-col dinner"><h2>Dinner <button type="button" class="btn" data-act="add" data-kind="dinner">+ Add</button></h2>
+        ${din.length ? din.map(card).join("") : `<div class="dv-empty">No dinner planned yet.</div>`}</section></div>`;
+    $("foot").textContent = "Click an item to edit it or change its days. Tick the circle to finish a chore.";
+  }
+  function renderYear() {
+    const y = +S.cursor.slice(0, 4), t = todayISO();
+    bands = new Map();
+    const byDay = new Map();
+    for (const it of inRange(`${y}-01-01`, `${y}-12-31`)) {
+      let d = it.start < `${y}-01-01` ? `${y}-01-01` : it.start;
+      const e = it.end > `${y}-12-31` ? `${y}-12-31` : it.end;
+      for (; d <= e; d = addDays(d, 1)) { if (!byDay.has(d)) byDay.set(d, []); byDay.get(d).push(it); }
+    }
+    let html = `<div class="year">`;
+    for (let m = 0; m < 12; m++) {
+      const ms = `${y}-${pad(m + 1)}-01`, me = monthEnd(ms), lead = parse(ms).getDay();
+      html += `<div class="mini"><h3><button type="button" data-act="month" data-date="${ms}">${MONTHS[m]}</button></h3><div class="mg">${DOW.map(x => `<div class="wd">${x[0]}</div>`).join("")}`;
+      html += `<div></div>`.repeat(lead);
+      for (let d = ms; d <= me; d = addDays(d, 1)) {
+        const its = byDay.get(d) || [];
+        const whos = [...new Set(its.map(i => i.who))].slice(0, 3);
+        html += `<button type="button" class="md${d === t ? " today" : ""}${its.length ? " busy" : ""}" data-act="day" data-date="${d}" aria-label="${fmt(d)}${its.length ? `, ${its.length} item${its.length > 1 ? "s" : ""}` : ""}"><span>${parse(d).getDate()}</span><span class="ds">${whos.map(w => `<i style="--c:${color(w)}"></i>`).join("")}</span></button>`;
+      }
+      html += `</div></div>`;
+    }
+    $("view").innerHTML = html + `</div>`;
+    $("foot").textContent = "Dots show who has something on that day. Click a day to open it, or a month name to see the whole month.";
+  }
+
+  function renderHeader() {
+    const [a, b] = viewRange(), c = parse(S.cursor);
+    let label;
+    if (S.view === "day") label = `${DOWL[c.getDay()]}, ${MONTHS[c.getMonth()]} ${c.getDate()}, ${c.getFullYear()}`;
+    else if (S.view === "week") label = parse(a).getMonth() === parse(b).getMonth() ? `${fmt(a)} – ${parse(b).getDate()}, ${parse(b).getFullYear()}` : `${fmt(a)} – ${fmt(b)}, ${parse(b).getFullYear()}`;
+    else if (S.view === "month") label = `${MONTHS[c.getMonth()]} ${c.getFullYear()}`;
+    else label = String(c.getFullYear());
+    $("range").textContent = label;
+    document.querySelectorAll("#viewTabs button").forEach(x => x.setAttribute("aria-pressed", String(x.dataset.v === S.view)));
+    const unit = { day: "day", week: "week", month: "month", year: "year" }[S.view];
+    $("prev").setAttribute("aria-label", "Previous " + unit); $("next").setAttribute("aria-label", "Next " + unit);
+    if (document.activeElement !== $("nameA")) $("nameA").value = S.names.a;
+    if (document.activeElement !== $("nameB")) $("nameB").value = S.names.b;
+  }
+  function renderSummary() {
+    const [a, b] = viewRange();
+    let chores = 0, done = 0, plans = 0; const dinners = new Set();
+    for (const it of inRange(a, b)) {
+      if (it.kind === "chore") { chores++; if (it.done) done++; }
+      else if (it.kind === "plan") plans++;
+      else for (let d = it.start < a ? a : it.start; d <= it.end && d <= b; d = addDays(d, 1)) dinners.add(d);
+    }
+    const days = diff(a, b) + 1;
+    $("summary").innerHTML = `<span><b>${done}/${chores}</b> chores done</span><span><b>${plans}</b> plan${plans === 1 ? "" : "s"}</span><span><b>${dinners.size}/${days}</b> dinner${days === 1 ? "" : "s"} planned</span>`;
+  }
+  function renderStatus() {
+    $("status").textContent = statusMsg || (S.mode === "db" ? "" : S.mode === "local" ? "Saved on this device only. Open the shared link to plan together." : "Connecting…");
+    $("status").hidden = !$("status").textContent;
+  }
+  // ---------- shopping list: four lists, one doc per item (two people can check things off at once) ----------
+  const SHOP_LISTS = ["general", "grocery", "costco", "longterm"];
+  const listOf = i => SHOP_LISTS.includes(i.list) ? i.list : "general";
+  const ordOf = i => (typeof i.order === "number" ? i.order : (i.added || 0));
+  let shopDrag = null, shopClearArmed = false, shopClearTimer = 0;
+  const gripSvg = `<svg viewBox="0 0 10 16" aria-hidden="true"><circle cx="2.5" cy="3" r="1.5"/><circle cx="7.5" cy="3" r="1.5"/><circle cx="2.5" cy="8" r="1.5"/><circle cx="7.5" cy="8" r="1.5"/><circle cx="2.5" cy="13" r="1.5"/><circle cx="7.5" cy="13" r="1.5"/></svg>`;
+  function renderShop() {
+    $("shop").hidden = S.view === "year";
+    if (shopDrag) return; // don't redraw under a finger mid-drag; we redraw on drop
+    const all = [...S.shop.values()];
+    const left = all.filter(i => !i.done).length, doneN = all.length - left;
+    $("shopCount").textContent = all.length ? `${left} of ${all.length} left` : "";
+    $("shopClear").hidden = !doneN;
+    if (!shopClearArmed) $("shopClear").textContent = `Remove checked (${doneN})`;
+    for (const L of SHOP_LISTS) {
+      const mine = all.filter(i => listOf(i) === L);
+      const open = mine.filter(i => !i.done).sort((a, b) => ordOf(a) - ordOf(b));
+      const done = mine.filter(i => i.done).sort((a, b) => (a.doneAt || 0) - (b.doneAt || 0));
+      $("shopN-" + L).textContent = mine.length ? `${open.length} left` : "";
+      $("shopList-" + L).innerHTML = mine.length ? [...open, ...done].map(i =>
+        `<li class="si${i.done ? " done" : ""}" data-li="${esc(i.id)}">${i.done ? `<span class="si-grip-sp"></span>` : `<button type="button" class="si-grip" data-grip="${esc(i.id)}" aria-label="Move ${esc(i.text)}. Drag, or use the arrow keys">${gripSvg}</button>`}<button type="button" class="si-chk" data-sid="${esc(i.id)}" role="checkbox" aria-checked="${!!i.done}"><span class="box"></span><span class="txt">${esc(i.text)}</span></button><button type="button" class="si-del" data-del="${esc(i.id)}" aria-label="Remove ${esc(i.text)}">×</button></li>`).join("")
+        : `<li class="shop-empty">${S.mode === "loading" ? "Loading…" : "Nothing here yet."}</li>`;
+    }
+  }
+  function shopWrite(it) {
+    S.shop.set(it.id, it); renderShop();
+    if (S.mode === "db") S.db.doc("shopping/" + it.id).set({ text: it.text, done: !!it.done, added: it.added, doneAt: it.doneAt || 0, order: ordOf(it), list: listOf(it) }).catch(onWriteErr);
+    else saveLocal();
+  }
+  function shopDelete(ids) {
+    for (const id of ids) S.shop.delete(id);
+    renderShop();
+    if (S.mode === "db") for (const id of ids) S.db.doc("shopping/" + id).delete().catch(onWriteErr);
+    else saveLocal();
+  }
+  const cols = $("shopCols");
+  cols.addEventListener("submit", e => {
+    const f = e.target.closest("form.shop-add"); if (!f) return;
+    e.preventDefault();
+    const L = f.dataset.list, input = $("shopIn-" + L);
+    const parts = input.value.split(",").map(x => x.trim()).filter(Boolean);
+    const now = Date.now();
+    parts.forEach((text, k) => shopWrite({ id: uid(), text: text.slice(0, 120), done: false, added: now + k, order: now + k, doneAt: 0, list: L }));
+    input.value = ""; input.focus();
+  });
+  cols.addEventListener("click", e => {
+    const c = e.target.closest("[data-sid]"), d = e.target.closest("[data-del]");
+    if (c) { const it = S.shop.get(c.dataset.sid); if (it) shopWrite({ ...it, done: !it.done, doneAt: it.done ? 0 : Date.now() }); }
+    else if (d) shopDelete([d.dataset.del]);
+  });
+  $("shopClear").addEventListener("click", () => {
+    const ids = [...S.shop.values()].filter(i => i.done).map(i => i.id);
+    if (!shopClearArmed) {
+      shopClearArmed = true; $("shopClear").textContent = `Tap again to remove ${ids.length}`;
+      clearTimeout(shopClearTimer); shopClearTimer = setTimeout(() => { shopClearArmed = false; renderShop(); }, 4000);
+      return;
+    }
+    shopClearArmed = false; clearTimeout(shopClearTimer); shopDelete(ids);
+  });
+
+  // drag to reorder or move between lists. Only the moved item is written: its new order is
+  // the midpoint between its new neighbours, plus its new list if it changed columns.
+  const openIdsIn = ul => [...ul.querySelectorAll(".si:not(.done)")].map(li => li.dataset.li);
+  function placeIn(id, ul, ids) {
+    const it = S.shop.get(id), k = ids.indexOf(id); if (!it || k < 0) return;
+    const L = ul.dataset.list;
+    const prev = k > 0 ? S.shop.get(ids[k - 1]) : null, next = k < ids.length - 1 ? S.shop.get(ids[k + 1]) : null;
+    let o = ordOf(it);
+    if (prev && next) o = (ordOf(prev) + ordOf(next)) / 2;
+    else if (prev) o = ordOf(prev) + 1000;
+    else if (next) o = ordOf(next) - 1000;
+    if (o !== ordOf(it) || L !== listOf(it)) shopWrite({ ...it, order: o, list: L });
+  }
+  function dropInto(ul, li) {
+    const firstDone = ul.querySelector(".si.done"), empty = ul.querySelector(".shop-empty");
+    if (empty) empty.remove();
+    if (firstDone) firstDone.before(li); else ul.appendChild(li);
+  }
+  cols.addEventListener("pointerdown", e => {
+    const g = e.target.closest("[data-grip]"); if (!g || e.button !== 0) return;
+    e.preventDefault();
+    const li = g.closest(".si");
+    shopDrag = { id: g.dataset.grip, li, moved: false };
+    li.classList.add("dragging");
+    try { g.setPointerCapture(e.pointerId); } catch (_) {}
+  });
+  cols.addEventListener("pointermove", e => {
+    if (!shopDrag) return;
+    shopDrag.moved = true;
+    let target = null, ul = null;
+    for (const el of document.elementsFromPoint(e.clientX, e.clientY)) {
+      if (!el.closest) continue;
+      const li = el.closest(".si:not(.done)");
+      if (li && li !== shopDrag.li) { target = li; break; }
+      const u = el.closest(".scol"); if (u) { ul = u.querySelector(".shop-list"); break; }
+    }
+    cols.querySelectorAll(".shop-list.over").forEach(x => x.classList.remove("over"));
+    if (target) {
+      const r = target.getBoundingClientRect();
+      if (e.clientY < r.top + r.height / 2) target.before(shopDrag.li); else target.after(shopDrag.li);
+    } else if (ul && ul !== shopDrag.li.parentElement) { dropInto(ul, shopDrag.li); }
+    const cur = shopDrag.li.parentElement; if (cur) cur.classList.add("over");
+  });
+  function endShopDrag() {
+    if (!shopDrag) return;
+    const d = shopDrag; shopDrag = null;
+    d.li.classList.remove("dragging");
+    cols.querySelectorAll(".shop-list.over").forEach(x => x.classList.remove("over"));
+    const ul = d.li.parentElement;
+    if (d.moved && ul) placeIn(d.id, ul, openIdsIn(ul));
+    renderShop();
+  }
+  cols.addEventListener("pointerup", endShopDrag);
+  // swipe row helpers: jump chips, highlight the list in view, and edge auto-scroll while dragging
+  function colStep() { const c = cols.querySelector(".scol"); return c ? c.getBoundingClientRect().width + 12 : 1; }
+  function markJump() {
+    const i = Math.round(cols.scrollLeft / colStep());
+    $("shopJump").querySelectorAll("button").forEach(b => b.setAttribute("aria-current", String(+b.dataset.j === Math.min(3, i))));
+  }
+  $("shopJump").addEventListener("click", e => { const b = e.target.closest("button"); if (b) cols.scrollTo({ left: +b.dataset.j * colStep(), behavior: "smooth" }); });
+  cols.addEventListener("scroll", markJump, { passive: true });
+  markJump();
+  let edgeTimer = 0;
+  cols.addEventListener("pointermove", e => {
+    clearInterval(edgeTimer);
+    if (!shopDrag || cols.scrollWidth <= cols.clientWidth) return;
+    const r = cols.getBoundingClientRect(), dir = e.clientX > r.right - 36 ? 1 : e.clientX < r.left + 36 ? -1 : 0;
+    if (dir) edgeTimer = setInterval(() => { cols.style.scrollSnapType = "none"; cols.scrollLeft += dir * 10; }, 16);
+  });
+  const stopEdge = () => { clearInterval(edgeTimer); cols.style.scrollSnapType = ""; };
+  cols.addEventListener("pointerup", stopEdge);
+  cols.addEventListener("pointercancel", stopEdge);
+  cols.addEventListener("pointercancel", endShopDrag);
+  cols.addEventListener("keydown", e => {
+    const g = e.target.closest("[data-grip]"); if (!g) return;
+    const id = g.dataset.grip, ul = g.closest(".shop-list");
+    if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+      e.preventDefault();
+      const ids = openIdsIn(ul), k = ids.indexOf(id), j = e.key === "ArrowUp" ? k - 1 : k + 1;
+      if (j < 0 || j >= ids.length) return;
+      ids.splice(j, 0, ids.splice(k, 1)[0]);
+      placeIn(id, ul, ids);
+    } else if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+      e.preventDefault();
+      const L = SHOP_LISTS.indexOf(ul.dataset.list) + (e.key === "ArrowLeft" ? -1 : 1);
+      if (L < 0 || L >= SHOP_LISTS.length) return;
+      const to = $("shopList-" + SHOP_LISTS[L]);
+      const ids = openIdsIn(to).filter(x => x !== id); ids.push(id);
+      placeIn(id, to, ids);
+    } else return;
+    const again = cols.querySelector(`[data-grip="${id}"]`); if (again) again.focus();
+  });
+
+  let lastViewKey = "";
+  function render() {
+    // keep the sideways scroll position when the board redraws (live updates, saves), so it never jumps back left
+    const old = $("view").querySelector(".board-scroll"), keepX = old ? old.scrollLeft : 0;
+    const viewKey = S.view + ":" + viewRange()[0];
+    renderHeader();
+    ({ day: renderDay, week: renderWeek, month: renderMonth, year: renderYear })[S.view]();
+    const sc = $("view").querySelector(".board-scroll");
+    if (sc && viewKey === lastViewKey) sc.scrollLeft = keepX;
+    lastViewKey = viewKey;
+    renderSummary(); renderStatus(); renderShop();
+  }
+  function setView(v, date) {
+    S.view = v; if (date) S.cursor = date; store.set("our-week-view", v); render();
+  }
+
+  // ---------- dragging (works across week rows in month view) ----------
+  let drag = null;
+  const view = $("view");
+  function dateAt(x, y) {
+    for (const el of document.elementsFromPoint(x, y)) { if (el.classList && el.classList.contains("cell")) return el.dataset.date; }
+    return null;
+  }
+  function markSel() {
+    const lo = drag && drag.type === "create" ? (drag.d0 < drag.d1 ? drag.d0 : drag.d1) : null;
+    const hi = drag && drag.type === "create" ? (drag.d0 < drag.d1 ? drag.d1 : drag.d0) : null;
+    view.querySelectorAll(".cell").forEach(c => {
+      const on = lo && (!drag.kindsBand || c.closest(".band").dataset.key === drag.kindsBand) && c.dataset.date >= lo && c.dataset.date <= hi;
+      c.classList.toggle("sel", !!on);
+    });
+  }
+  view.addEventListener("pointerdown", e => {
+    if (e.button !== 0) return;
+    const act = e.target.closest("[data-act]");
+    if (act && ["toggle", "day", "month", "add", "open"].includes(act.dataset.act)) return;
+    const bandEl = e.target.closest(".band"); if (!bandEl) return;
+    const cfg = bands.get(bandEl.dataset.key);
+    const bar = e.target.closest(".bar");
+    const d0 = dateAt(e.clientX, e.clientY); if (!d0) return;
+    if (bar) {
+      const it = getItem(bar.dataset.id); if (!it) return;
+      const a = act && act.dataset.act;
+      drag = { type: a === "rl" ? "rl" : a === "rr" ? "rr" : "move", id: it.id, d0, x0: e.clientX, y0: e.clientY, orig: { start: it.start, end: it.end }, moved: false, preview: null };
+    } else {
+      // A finger on an empty day should scroll the calendar like normal; only a plain tap adds an item.
+      if (e.pointerType === "touch") { tap = { x: e.clientX, y: e.clientY, d0, kind: cfg.kinds === "dinner" ? "dinner" : "plan" }; return; }
+      // in week view, selection stays in the band you started in (plans vs dinner)
+      drag = { type: "create", d0, d1: d0, kind: cfg.kinds === "dinner" ? "dinner" : "plan", kindsBand: S.view === "week" ? bandEl.dataset.key : null };
+      if (e.pointerType !== "touch") e.preventDefault();
+      markSel();
+    }
+    try { view.setPointerCapture(e.pointerId); } catch (_) {}
+  });
+  let tap = null;
+  view.addEventListener("pointermove", e => {
+    if (tap && Math.hypot(e.clientX - tap.x, e.clientY - tap.y) > 10) tap = null;
+    if (!drag) return;
+    const d = dateAt(e.clientX, e.clientY);
+    if (drag.type === "create") { if (d && d !== drag.d1) { drag.d1 = d; markSel(); } return; }
+    if (!drag.moved && Math.hypot(e.clientX - drag.x0, e.clientY - drag.y0) < 4) return;
+    drag.moved = true;
+    if (!d) return;
+    const n = diff(drag.d0, d);
+    let { start, end } = drag.orig;
+    if (drag.type === "move") { start = addDays(start, n); end = addDays(end, n); }
+    else if (drag.type === "rl") { start = addDays(start, n); if (start > end) start = end; }
+    else { end = addDays(end, n); if (end < start) end = start; }
+    const p = drag.preview;
+    if (!p || p.start !== start || p.end !== end) { drag.preview = { start, end }; renderAllBands(); }
+  });
+  view.addEventListener("pointerup", e => {
+    if (tap) {
+      const t = tap; tap = null;
+      if (Math.hypot(e.clientX - t.x, e.clientY - t.y) <= 10) openEditor(null, { start: t.d0, end: t.d0, kind: t.kind });
+      return;
+    }
+    if (!drag) return;
+    const d = drag; drag = null;
+    if (d.type === "create") {
+      markSel();
+      const [a, b] = d.d0 < d.d1 ? [d.d0, d.d1] : [d.d1, d.d0];
+      openEditor(null, { start: a, end: b, kind: d.kind });
+      return;
+    }
+    const it = getItem(d.id);
+    if (!it) { render(); return; }
+    if (!d.moved) { renderAllBands(); openEditor(it); return; }
+    if (d.preview && (d.preview.start !== it.start || d.preview.end !== it.end)) {
+      if (it.seriesId) applyScope("save", "this", it, { ...it, ...d.preview }); // dragging one repeat moves only that one
+      else persist({ ...it, ...d.preview });
+    } else renderAllBands();
+  });
+  // pointercancel fires when the browser takes over to scroll: tidy up without rebuilding the board
+  view.addEventListener("pointercancel", () => { tap = null; if (drag) { drag = null; markSel(); renderAllBands(); } });
+  view.addEventListener("click", e => {
+    const a = e.target.closest("[data-act]"); if (!a) return;
+    const act = a.dataset.act;
+    if (act === "toggle") {
+      e.stopPropagation();
+      const id = a.closest("[data-id]").dataset.id, it = getItem(id);
+      if (it && it.seriesId) {
+        const s = S.items.get(it.seriesId), dd = { ...(s.doneDates || {}) };
+        if (dd[it.occ]) delete dd[it.occ]; else dd[it.occ] = true;
+        persist({ ...s, doneDates: dd });
+      } else if (it) persist({ ...it, done: !it.done });
+    } else if (act === "day") setView("day", a.dataset.date);
+    else if (act === "month") setView("month", a.dataset.date);
+    else if (act === "add") openEditor(null, { start: S.cursor, end: S.cursor, kind: a.dataset.kind });
+    else if (act === "open") { const it = getItem(a.dataset.id); if (it) openEditor(it); }
+  });
+  view.addEventListener("keydown", e => {
+    if (e.key !== "Enter" && e.key !== " ") return;
+    const el = e.target.closest && e.target.closest(".bar, .card");
+    if (el && e.target === el) { e.preventDefault(); const it = getItem(el.dataset.id); if (it) openEditor(it); }
+  });
+
+  // ---------- editor ----------
+  const KINDS = [["plan", "Plan"], ["chore", "Chore"], ["dinner", "Dinner"], ["pto", "PTO", "var(--pto-bar)"], ["away", "Out of town", "var(--away-bar)"]];
+  let ed = null, delArmed = false;
+  function seg(el, opts, val, onPick) {
+    el.innerHTML = opts.map(([v, l, c]) => `<button type="button" data-v="${v}" aria-pressed="${v === val}">${c ? `<span class="dot" style="background:${c}"></span>` : ""}${esc(l)}</button>`).join("");
+    el.onclick = e => { const b = e.target.closest("button"); if (b) onPick(b.dataset.v); };
+  }
+  function drawSegs() {
+    seg($("fKind"), KINDS, ed.kind, v => { ed.kind = v; drawSegs(); });
+    seg($("fWho"), [["a", S.names.a, "var(--a)"], ["b", S.names.b, "var(--b)"], ["both", "Both", "var(--both)"]], ed.who, v => { ed.who = v; drawSegs(); });
+    $("whoLbl").textContent = ed.kind === "dinner" ? "Who's cooking" : "Who";
+  }
+  // repeat picker
+  function drawRepeat() {
+    const r = ed.rep;
+    seg($("fRepeat"), [["none", "Doesn't repeat"], ["weekly", "Repeats weekly"]], r.on ? "weekly" : "none", v => {
+      r.on = v === "weekly";
+      if (r.on && !r.days.size) r.days.add(parse($("fStart").value || ed.start).getDay());
+      drawRepeat();
+    });
+    $("repeatBox").hidden = !r.on;
+    $("fDows").innerHTML = [0, 1, 2, 3, 4, 5, 6].map(i => `<button type="button" data-d="${i}" aria-pressed="${r.days.has(i)}" aria-label="${DOWL[i]}">${DOW1[i]}</button>`).join("");
+    $("fEvery").value = r.every; $("fUntil").value = r.until || "";
+  }
+  $("fDows").addEventListener("click", e => { const b = e.target.closest("button"); if (!b || !ed) return; const i = +b.dataset.d; ed.rep.days.has(i) ? ed.rep.days.delete(i) : ed.rep.days.add(i); drawRepeat(); });
+  $("presets").addEventListener("click", e => { const b = e.target.closest("button"); if (!b || !ed) return; ed.rep.days = new Set(b.dataset.p === "weekdays" ? [1, 2, 3, 4, 5] : [0, 1, 2, 3, 4, 5, 6]); drawRepeat(); });
+  $("fEvery").addEventListener("change", e => { if (ed) ed.rep.every = Math.max(1, Math.min(12, parseInt(e.target.value, 10) || 1)); e.target.value = ed ? ed.rep.every : 1; });
+  $("fUntil").addEventListener("change", e => { if (ed) ed.rep.until = e.target.value; });
+
+  function showPane(scope) { $("formBody").hidden = !!scope; $("scopeBox").hidden = !scope; }
+  function openEditor(it, defaults) {
+    ed = it ? { ...it } : { id: null, title: "", kind: "plan", who: "both", start: todayISO(), end: todayISO(), time: "", tStart: "", tEnd: "", notes: "", done: false, ...defaults };
+    const r = ed.repeat;
+    ed.rep = { on: !!r, days: new Set(r ? r.days : []), every: (r && r.every) || 1, until: (r && r.until) || "" };
+    delArmed = false; pending = null;
+    $("edTitle").textContent = it ? (ed.seriesId ? "Edit repeating item" : "Edit") : ed.kind === "dinner" ? "Plan dinner" : "New item";
+    $("fTitle").value = ed.title; $("fStart").value = ed.start; $("fEnd").value = ed.end;
+    const legacy = !ed.tStart && ed.time ? parseLegacyTime(ed.time) : "";
+    $("fTStart").value = ed.tStart || legacy; $("fTEnd").value = ed.tEnd || "";
+    $("timeHint").textContent = !ed.tStart && ed.time && !legacy ? `Earlier note: "${ed.time}". Pick a start time to replace it.` : "";
+    $("fNotes").value = ed.notes || ""; $("fErr").textContent = "";
+    $("delBtn").hidden = !it; $("delBtn").textContent = "Delete";
+    drawSegs(); drawRepeat(); showPane(null); updateGcal();
+    $("scrim").hidden = false;
+    setTimeout(() => $("fTitle").focus(), 0);
+  }
+  function closeEditor() { $("scrim").hidden = true; ed = null; pending = null; }
+  function readForm() {
+    const err = m => { $("fErr").textContent = m; return null; };
+    const title = $("fTitle").value.trim();
+    const start = $("fStart").value, end = $("fEnd").value || start;
+    if (!title) return err("Give it a name first.");
+    if (!start) return err("Pick a start date.");
+    if (end < start) return err("The end date is before the start date.");
+    let repeat = null;
+    if (ed.rep.on) {
+      if (!ed.rep.days.size) return err("Pick at least one day for it to repeat on.");
+      if (ed.rep.until && ed.rep.until < start) return err("The repeat end date is before the start date.");
+      repeat = { days: [...ed.rep.days].sort(), every: ed.rep.every || 1, until: ed.rep.until || "" };
+    }
+    const tStart = $("fTStart").value, tEnd = $("fTEnd").value;
+    if (tEnd && !tStart) return err("Add a start time, or clear the end time.");
+    if (tStart && tEnd && start === end && tEnd <= tStart) return err("The end time is before the start time.");
+    const time = tStart ? "" : (ed.time || "");
+    return { title, start, end, kind: ed.kind, who: ed.who, time, tStart, tEnd, notes: $("fNotes").value.trim(), repeat };
+  }
+  const fields = f => ({ title: f.title, kind: f.kind, who: f.who, time: f.time, tStart: f.tStart, tEnd: f.tEnd, notes: f.notes });
+
+  // ---------- Google Calendar (one-way copy via Google's event template link) ----------
+  const ymd = s => s.replace(/-/g, "");
+  function gcalUrl() {
+    const title = $("fTitle").value.trim() || "Untitled";
+    const start = $("fStart").value || ed.start, end = ($("fEnd").value || start) < start ? start : ($("fEnd").value || start);
+    const tS = $("fTStart").value, tE = $("fTEnd").value;
+    let dates;
+    if (tS) {
+      let endDate = end, endT = tE;
+      if (!endT) { const [h, m] = tS.split(":").map(Number); const mins = h * 60 + m + 60; endT = `${pad(Math.floor(mins / 60) % 24)}:${pad(mins % 60)}`; if (mins >= 1440) endDate = addDays(end, 1); }
+      else if (start === end && endT <= tS) endDate = addDays(end, 1);
+      dates = `${ymd(start)}T${tS.replace(":", "")}00/${ymd(endDate)}T${endT.replace(":", "")}00`;
+    } else dates = `${ymd(start)}/${ymd(addDays(end, 1))}`;
+    const kindName = { plan: "Plan", chore: "Chore", dinner: "Dinner", pto: "PTO", away: "Out of town" }[ed.kind];
+    const details = [$("fNotes").value.trim(), `${kindName} · ${whoName(ed.who)} · from Our Week`].filter(Boolean).join("\n\n");
+    const q = new URLSearchParams({ action: "TEMPLATE", text: title, dates, details });
+    try { const tz = Intl.DateTimeFormat().resolvedOptions().timeZone; if (tz && tS) q.set("ctz", tz); } catch (_) {}
+    if (ed.rep.on && ed.rep.days.size) {
+      const BY = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
+      let rule = `RRULE:FREQ=WEEKLY;BYDAY=${[...ed.rep.days].sort().map(i => BY[i]).join(",")}`;
+      if ((ed.rep.every || 1) > 1) rule += `;INTERVAL=${ed.rep.every}`;
+      if (ed.rep.until) rule += `;UNTIL=${ymd(ed.rep.until)}${tS ? "T235959Z" : ""}`;
+      q.set("recur", rule);
+    }
+    return "https://calendar.google.com/calendar/render?" + q.toString();
+  }
+  function updateGcal() {
+    if (!ed) return;
+    const a = $("gcalBtn");
+    a.href = gcalUrl();
+    $("gcalLbl").textContent = ed.rep.on ? "Add repeating event to Google Calendar" : "Add to Google Calendar";
+    $("gcalHint").textContent = !$("fTStart").value ? "No start time, so it goes in as an all-day event." : ed.seriesId ? "Repeats start from this date." : "Opens Google in a new tab. Click Save there.";
+  }
+  $("editor").addEventListener("input", updateGcal);
+  $("editor").addEventListener("click", () => setTimeout(updateGcal, 0));
+  $("gcalBtn").addEventListener("click", () => { $("gcalBtn").href = gcalUrl(); });
+  const asSingle = it => { const o = { ...it }; delete o.repeat; delete o.exceptions; delete o.doneDates; delete o.rep; delete o.seriesId; delete o.occ; return o; };
+
+  function commit(writes, dels) {
+    for (const w of writes) { delete w.rep; S.items.set(w.id, w); }
+    for (const id of dels) S.items.delete(id);
+    render();
+    if (S.mode === "db") {
+      for (const w of writes) S.db.doc("items/" + w.id).set(clean(w)).catch(onWriteErr);
+      for (const id of dels) S.db.doc("items/" + id).delete().catch(onWriteErr);
+    } else saveLocal();
+  }
+  // type: "save" | "delete"; scope: "this" | "following" | "all"; occ: the clicked occurrence; F: form values
+  function applyScope(type, scope, occ, F) {
+    const s = S.items.get(occ.seriesId); if (!s) return;
+    const g = groupOf(s), d = occ.occ, writes = [], dels = [];
+    const inGroup = [...S.items.values()].filter(x => groupOf(x) === g);
+    const exceptThis = () => writes.push({ ...s, exceptions: { ...(s.exceptions || {}), [d]: true } });
+    const endBefore = () => {
+      const until = addDays(d, -1);
+      if (until < s.start) dels.push(s.id);
+      else writes.push({ ...s, repeat: { ...s.repeat, until: s.repeat.until && s.repeat.until < until ? s.repeat.until : until } });
+      for (const x of inGroup) if (x.id !== s.id && x.start >= d) dels.push(x.id);
+    };
+    if (type === "delete") {
+      if (scope === "this") exceptThis();
+      else if (scope === "following") endBefore();
+      else for (const x of inGroup) dels.push(x.id);
+    } else if (scope === "this") {
+      exceptThis();
+      writes.push({ id: uid(), ...fields(F), start: F.start, end: F.end, done: !!occ.done, group: g });
+    } else if (scope === "following") {
+      endBefore();
+      const n = { id: uid(), ...fields(F), start: F.start, end: F.end, done: false, group: g };
+      if (F.repeat) Object.assign(n, { repeat: F.repeat, exceptions: {}, doneDates: {} });
+      writes.push(n);
+    } else {
+      const shift = diff(occ.start, F.start), ns = addDays(s.start, shift), ne = addDays(ns, diff(F.start, F.end));
+      if (!F.repeat) {
+        for (const x of inGroup) if (x.id !== s.id) dels.push(x.id);
+        writes.push({ ...asSingle(s), ...fields(F), start: F.start, end: F.end, done: !!occ.done, group: undefined });
+      } else {
+        writes.push({ ...s, ...fields(F), start: ns, end: ne, repeat: F.repeat });
+        for (const x of inGroup) if (x.id !== s.id) writes.push(x.repeat ? { ...x, ...fields(F), repeat: { ...F.repeat, until: x.repeat.until } } : { ...x, ...fields(F) });
+      }
+    }
+    const delSet = new Set(dels);
+    commit(writes.filter(w => !delSet.has(w.id)), [...delSet]);
+  }
+
+  let pending = null;
+  function askScope(type, F) {
+    pending = { type, F, occ: ed };
+    $("scopeTitle").textContent = type === "delete" ? "Delete repeating item" : "Save changes to repeating item";
+    $("scopeBox").querySelectorAll("[data-scope]").forEach(b => b.classList.toggle("danger", type === "delete"));
+    showPane("scope");
+    $("scopeBox").querySelector("[data-scope]").focus();
+  }
+  $("scopeBox").addEventListener("click", e => {
+    const b = e.target.closest("button"); if (!b || !pending) return;
+    if (b.id === "scopeBack") { pending = null; showPane(null); return; }
+    const p = pending; closeEditor(); applyScope(p.type, b.dataset.scope, p.occ, p.F);
+  });
+  $("editor").addEventListener("submit", e => {
+    e.preventDefault();
+    if (pending) return;
+    const F = readForm(); if (!F) return;
+    if (ed.seriesId) { askScope("save", F); return; }
+    let it = { ...ed, ...fields(F), id: ed.id || uid(), start: F.start, end: F.end };
+    if (F.repeat) { it.repeat = F.repeat; it.exceptions = it.exceptions || {}; it.doneDates = it.doneDates || {}; }
+    else it = asSingle(it);
+    if (ed.id) delete it.example;
+    closeEditor(); commit([it], []);
+  });
+  $("cancelBtn").onclick = closeEditor;
+  $("delBtn").onclick = () => {
+    if (ed.seriesId) { askScope("delete", null); return; }
+    if (!delArmed) { delArmed = true; $("delBtn").textContent = "Tap again to delete"; return; }
+    const id = ed.id; closeEditor(); remove(id);
+  };
+  $("scrim").addEventListener("pointerdown", e => { if (e.target === $("scrim")) closeEditor(); });
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("scrim").hidden) closeEditor(); });
+
+  // ---------- controls ----------
+  function step(dir) {
+    const c = S.cursor;
+    S.cursor = S.view === "day" ? addDays(c, dir) : S.view === "week" ? addDays(c, 7 * dir)
+      : S.view === "month" ? addMonths(c, dir) : `${+c.slice(0, 4) + dir}-${c.slice(5)}`.replace(/-02-29$/, "-02-28");
+    render();
+  }
+  $("prev").onclick = () => step(-1);
+  $("next").onclick = () => step(1);
+  $("todayBtn").onclick = () => { S.cursor = todayISO(); render(); };
+  $("viewTabs").addEventListener("click", e => { const b = e.target.closest("button"); if (b) setView(b.dataset.v); });
+  $("themeTabs").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; theme = b.dataset.v; store.set("our-week-theme", theme); applyTheme(theme); });
+  $("addBtn").onclick = () => {
+    const [a, b] = viewRange(), t = todayISO();
+    const d = S.view === "day" ? S.cursor : (t >= a && t <= b) ? t : a;
+    openEditor(null, { start: d, end: d });
+  };
+  for (const [id, k] of [["nameA", "a"], ["nameB", "b"]]) {
+    $(id).addEventListener("change", e => { const v = e.target.value.trim() || (k === "a" ? "Him" : "Her"); if (v !== S.names[k]) { S.names[k] = v; saveNames(); } else e.target.value = v; });
+    $(id).addEventListener("keydown", e => { if (e.key === "Enter") e.target.blur(); });
+  }
+
+  // ---------- storage: Supabase (shared data + login) ----------
+  const CFG = window.OUR_WEEK_CONFIG || {};
+  const configured = !!(CFG.supabaseUrl && CFG.supabaseAnonKey && CFG.loginEmail) && !/YOUR-/.test(CFG.supabaseUrl + CFG.supabaseAnonKey + CFG.loginEmail);
+  const sb = configured && window.supabase ? window.supabase.createClient(CFG.supabaseUrl, CFG.supabaseAnonKey, {
+    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false, storageKey: "our-week-auth" },
+  }) : null;
+
+  const docs = { items: new Map(), shopping: new Map(), settings: new Map() };
+  const subs = { items: [], shopping: [], settings: [] };
+  let writeSeq = 0, started = false, loading = null;
+  const emit = coll => { for (const f of subs[coll]) f(); };
+  const isAuthErr = e => e && (e.status === 401 || /JWT|token/i.test(e.message || "") || e.code === "PGRST301");
+  function dbErr(error) {
+    const e = new Error(error.message || "Save failed");
+    e.code = /row-level security|permission denied/i.test(error.message || "") ? "permission_denied" : "unavailable";
+    if (isAuthErr(error)) signedOutElsewhere();
+    return e;
+  }
+  // Same small interface the page already uses: doc(path).set/delete/onSnapshot, collection(name).onSnapshot
+  const remote = {
+    doc(path) {
+      const [coll, id] = path.split("/");
+      return {
+        async set(data) {
+          writeSeq++; docs[coll].set(id, data);
+          const { error } = await sb.from("docs").upsert({ coll, id, data, updated_at: new Date().toISOString() });
+          if (error) throw dbErr(error);
+        },
+        async delete() {
+          writeSeq++; docs[coll].delete(id);
+          const { error } = await sb.from("docs").delete().eq("coll", coll).eq("id", id);
+          if (error) throw dbErr(error);
+        },
+        onSnapshot(next) { subs[coll].push(() => { const v = docs[coll].get(id); next({ exists: !!v, data: () => v }); }); return () => {}; },
+      };
+    },
+    collection(coll) {
+      return { onSnapshot(next) { subs[coll].push(() => next({ docs: [...docs[coll]].map(([id, v]) => ({ id, exists: true, data: () => v })) })); return () => {}; } };
+    },
+  };
+  // Full read of everything (used at start, on reconnect and when the app comes back to the foreground)
+  function loadAll() {
+    if (loading) return loading;
+    loading = (async () => {
+      for (let tries = 0; tries < 3; tries++) {
+        const seq = writeSeq, rows = [];
+        for (let from = 0; ; from += 1000) {
+          const { data, error } = await sb.from("docs").select("coll,id,data").order("coll").order("id").range(from, from + 999);
+          if (error) {
+            if (isAuthErr(error)) { signedOutElsewhere(); return false; }
+            statusMsg = "Can't reach the planner right now. Check your connection; it will retry."; renderStatus();
+            return false;
+          }
+          rows.push(...data);
+          if (data.length < 1000) break;
+        }
+        if (seq !== writeSeq) continue; // you saved something mid-read; read again so nothing jumps back
+        for (const c of Object.keys(docs)) docs[c].clear();
+        for (const r of rows) if (docs[r.coll]) docs[r.coll].set(r.id, r.data);
+        if (statusMsg.startsWith("Can't reach")) statusMsg = "";
+        S.mode = "db";
+        for (const c of Object.keys(docs)) emit(c);
+        return true;
+      }
+      return false;
+    })().finally(() => { loading = null; });
+    return loading;
+  }
+  function listen() {
+    sb.channel("docs-live")
+      .on("postgres_changes", { event: "*", schema: "public", table: "docs" }, p => {
+        if (p.eventType === "DELETE") { const o = p.old || {}; if (docs[o.coll]) { docs[o.coll].delete(o.id); emit(o.coll); } }
+        else { const n = p.new || {}; if (docs[n.coll]) { docs[n.coll].set(n.id, n.data); emit(n.coll); } }
+      })
+      .subscribe(status => {
+        if (status === "SUBSCRIBED") loadAll(); // catch anything that changed while connecting
+        else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") { statusMsg = "Live updates paused. Reconnecting…"; renderStatus(); }
+      });
+  }
+  async function start() {
+    if (started) return; started = true;
+    $("gate").hidden = true; $("app").hidden = false;
+    S.db = remote;
+    remote.collection("items").onSnapshot(snap => {
+      const m = new Map();
+      for (const d of snap.docs) { const v = d.data(); if (v && v.start && v.end) m.set(d.id, { id: d.id, ...v }); }
+      S.items = m;
+      if (!drag) render();
+    });
+    remote.collection("shopping").onSnapshot(snap => {
+      const m = new Map();
+      for (const d of snap.docs) { const v = d.data(); if (v && v.text) m.set(d.id, { id: d.id, ...v }); }
+      S.shop = m; renderShop();
+    });
+    remote.doc("settings/names").onSnapshot(s => {
+      const v = s.exists ? s.data() : null;
+      if (v) { S.names = { a: v.a || "Him", b: v.b || "Her" }; if (!drag) render(); }
+    });
+    render();
+    await loadAll();
+    render();
+    listen();
+    document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") loadAll(); });
+    setInterval(() => { if (document.visibilityState === "visible") loadAll(); }, 60000);
+  }
+  let reloading = false;
+  async function signedOutElsewhere() {
+    if (reloading) return; reloading = true;
+    try { await sb.auth.signOut({ scope: "local" }); } catch (_) {}
+    location.reload();
+  }
+  function showGate(msg) {
+    $("app").hidden = true; $("gate").hidden = false;
+    if (msg) $("gateMsg").innerHTML = msg;
+    setTimeout(() => $("gatePw").focus(), 0);
+  }
+  $("gateForm").addEventListener("submit", async e => {
+    e.preventDefault();
+    if (!sb) return;
+    const pw = $("gatePw").value;
+    $("gateErr").textContent = ""; $("gateBtn").disabled = true; $("gateBtn").textContent = "Unlocking…";
+    const { error } = await sb.auth.signInWithPassword({ email: CFG.loginEmail, password: pw });
+    $("gateBtn").disabled = false; $("gateBtn").textContent = "Unlock";
+    if (error) {
+      $("gateErr").textContent = /invalid/i.test(error.message) ? "That password didn't work. Try again."
+        : /rate|too many/i.test(error.message) ? "Too many tries. Wait a few minutes, then try again."
+        : "Couldn't sign in right now. Check your connection and try again.";
+      $("gatePw").select();
+      return;
+    }
+    $("gatePw").value = "";
+    start();
+  });
+  // sign out
+  $("acctBtn").onclick = () => { $("acctErr").textContent = ""; $("acct").hidden = false; };
+  $("acctCancel").onclick = () => { $("acct").hidden = true; };
+  $("acct").addEventListener("pointerdown", e => { if (e.target === $("acct")) $("acct").hidden = true; });
+  async function signOut(scope) {
+    const { error } = await sb.auth.signOut({ scope });
+    if (error && scope === "global") { $("acctErr").textContent = "Couldn't sign out the other devices. Check your connection and try again."; return; }
+    reloading = true; location.reload();
+  }
+  $("outHere").onclick = () => signOut("local");
+  $("outAll").onclick = () => signOut("global");
+
+  (async () => {
+    if (!configured) { showGate("This copy isn't connected to a database yet. Fill in <code>config.js</code> with your Supabase details."); $("gatePw").disabled = $("gateBtn").disabled = true; return; }
+    if (!sb) { showGate("Couldn't load the sign-in library. Reload the page to try again."); return; }
+    $("gateUser").value = CFG.loginEmail;
+    const { data } = await sb.auth.getSession();
+    if (data && data.session) start(); else showGate();
+  })();
+})();
+</script>
+
+</body>
+</html>
