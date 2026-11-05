@@ -287,6 +287,11 @@ button.day:hover .dd { background: var(--line); }
 .scope { display: grid; gap: 8px; margin-bottom: 6px; }
 .scope .btn { text-align: left; padding: 11px 14px; }
 .bar .rep { flex: none; opacity: .75; font-size: 12px; }
+.bar.thin { font-size: 11.5px; padding: 0 8px; gap: 5px; border-radius: 5px; }
+.bar.thin .cook { width: 6px; height: 6px; }
+.bar.thin.sm { font-size: 10.5px; padding: 0 6px; }
+.bar.dragging { transition: none; }
+.ins-line { position: absolute; height: 3px; border-radius: 2px; background: var(--a); box-shadow: 0 0 0 2px var(--surface); z-index: 6; pointer-events: none; }
 .bar.tall { white-space: normal; padding: 4px 9px; line-height: 1.22; }
 .bar.tall .t { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow-wrap: anywhere; }
 .bar.tall.dinner .t { -webkit-line-clamp: 2; }
@@ -519,6 +524,7 @@ button.day:hover .dd { background: var(--line); }
     if (it.example) o.example = true;
     if (it.repeat) { o.repeat = { days: it.repeat.days, every: it.repeat.every || 1, until: it.repeat.until || "" }; o.exceptions = it.exceptions || {}; o.doneDates = it.doneDates || {}; }
     if (it.group) o.group = it.group;
+    if (typeof it.rank === "number") o.rank = it.rank;
     return o;
   }
   // Recurring series: one stored doc with repeat {days: [0-6, Sun=0], every: N weeks, until}.
@@ -634,28 +640,46 @@ button.day:hover .dd { background: var(--line); }
     }
     return lanes.length;
   }
+  // Row order inside a day: PTO / Out of town as thin strips on top, then plans, then chores
+  // (and dinners last in Month view). Every item has a rank; dragging up or down changes it.
+  // Items nobody has moved get a default rank from their type, start time and length.
+  const GROUP_OF = { pto: 0, away: 0, plan: 1, chore: 1, dinner: 2 };
+  const isThin = k => k === "pto" || k === "away";
+  function effRank(it) {
+    if (typeof it.rank === "number") return it.rank;
+    const base = { pto: 0, away: 0, plan: 1e7, chore: 2e7, dinner: 3e7 }[it.kind] ?? 1e7;
+    const t = it.tStart ? (+it.tStart.slice(0, 2)) * 60 + (+it.tStart.slice(3, 5)) : 1440;
+    return base + (it.start !== it.end && !isThin(it.kind) ? 5e6 : 0) + t * 100;
+  }
+  const byRank = (x, y) => effRank(x) - effRank(y) || x.start.localeCompare(y.start) || diff(y.start, y.end) - diff(x.start, x.end) || x.title.localeCompare(y.title);
   function renderBandItems(key) {
     const cfg = bands.get(key); const el = document.querySelector(`.band[data-key="${key}"]`);
     if (!cfg || !el) return;
-    const list = inRange(cfg.start, cfg.end)
+    const all = inRange(cfg.start, cfg.end)
       .filter(it => cfg.kinds === "all" || (cfg.kinds === "dinner") === (it.kind === "dinner"))
       .map(it => ({ it, c0: Math.max(0, diff(cfg.start, it.start)), c1: Math.min(6, diff(cfg.start, it.end)) }));
-    const rank = k => k === "dinner" ? 2 : (k === "away" || k === "pto") ? 0 : 1;
-    list.sort((x, y) => rank(x.it.kind) - rank(y.it.kind) || x.c0 - y.c0 || (y.c1 - y.c0) - (x.c1 - x.c0) || timeKey(x.it).localeCompare(timeKey(y.it)) || x.it.title.localeCompare(y.it.title));
-    const n = pack(list);
+    let y = cfg.top; const layout = [];
+    [0, 1, 2].forEach(g => {
+      const list = all.filter(o => (GROUP_OF[o.it.kind] ?? 1) === g).sort((p, q) => byRank(p.it, q.it));
+      if (!list.length) return;
+      const h = g === 0 ? cfg.thinH : cfg.bh, step = h + 4, n = pack(list);
+      for (const o of list) { o.g = g; o.h = h; o.y = y + o.lane * step; layout.push(o); }
+      y += n * step + (g === 0 ? 3 : 0);
+    });
+    cfg.layout = layout;
     const step = cfg.bh + 4;
-    el.style.height = (cfg.top + Math.max(cfg.minLanes, n + (cfg.spare ? 1 : 0)) * step + 6) + "px";
-    el.querySelector(".items").innerHTML = list.map(({ it, c0, c1, lane }) => {
-      const cl = it.start < cfg.start, cr = it.end > cfg.end, k = it.kind;
+    el.style.height = (Math.max(cfg.top + cfg.minLanes * step, y + (cfg.spare ? step : 0)) + 6) + "px";
+    el.querySelector(".items").innerHTML = layout.map(({ it, c0, c1, g, h, y }) => {
+      const cl = it.start < cfg.start, cr = it.end > cfg.end, k = it.kind, thin = g === 0;
       const pre = k === "chore" ? `<button type="button" class="chk" data-act="toggle" aria-label="${it.done ? "Mark not done" : "Mark done"}"></button>`
         : k === "dinner" ? `<span class="cook" title="${esc(whoName(it.who))} cooks"></span>`
-        : (k === "pto" || k === "away") ? `<span class="cook" title="${esc(whoName(it.who))}"></span>` : "";
-      return `<div class="bar ${k}${cfg.small ? " sm" : ""}${cfg.tall ? " tall" : ""}${it.done ? " done" : ""}${cl ? " cut-l" : ""}${cr ? " cut-r" : ""}${drag && drag.id === it.id ? " dragging" : ""}"
+        : thin ? `<span class="cook" title="${esc(whoName(it.who))}"></span>` : "";
+      return `<div class="bar ${k}${thin ? " thin" : ""}${cfg.small ? " sm" : ""}${cfg.tall && !thin ? " tall" : ""}${it.done ? " done" : ""}${cl ? " cut-l" : ""}${cr ? " cut-r" : ""}${drag && drag.id === it.id ? " dragging" : ""}"
         data-id="${esc(it.id)}" tabindex="0" role="button" aria-label="${esc(it.title)}, ${esc(whoName(it.who))}" title="${esc(it.title)}${timeLabel(it) ? " · " + esc(timeLabel(it)) : ""}"
-        style="--c:${color(it.who)};--bh:${cfg.bh}px;left:calc(${(c0 / 7) * 100}% + 3px);width:calc(${((c1 - c0 + 1) / 7) * 100}% - 6px);top:${cfg.top + lane * step}px">
+        style="--c:${color(it.who)};--bh:${h}px;left:calc(${(c0 / 7) * 100}% + 3px);width:calc(${((c1 - c0 + 1) / 7) * 100}% - 6px);top:${y}px">
         ${pre}<span class="t">${esc(it.title)}</span>${it.seriesId ? `<span class="rep" title="Repeats" aria-label="Repeats">↻</span>` : ""}
         <span class="h l" data-act="rl"></span><span class="h r" data-act="rr"></span></div>`;
-    }).join("") + (cfg.emptyNote && list.length === 0 ? `<div class="empty-note">${S.mode === "loading" ? "Loading your week…" : cfg.emptyNote}</div>` : "");
+    }).join("") + (cfg.emptyNote && layout.length === 0 ? `<div class="empty-note">${S.mode === "loading" ? "Loading your week…" : cfg.emptyNote}</div>` : "");
   }
   const renderAllBands = () => { for (const k of bands.keys()) renderBandItems(k); };
 
@@ -672,10 +696,10 @@ button.day:hover .dd { background: var(--line); }
     const m = sundayOf(S.cursor);
     bands = new Map();
     $("view").innerHTML = `<div class="board-scroll"><div class="board">${daysHeader(m, true)}
-      <div class="band-head"><h2>Plans &amp; chores</h2><span class="hint">Drag across days to add · drag the ends to stretch</span></div>
-      ${bandHTML("w-plan", { start: m, end: addDays(m, 6), kinds: "plan", minLanes: 5, top: 8, bh: 56, tall: true, spare: true, emptyNote: "Nothing planned yet. Drag across a few days to add something." }, "plan")}
+      <div class="band-head"><h2>Plans &amp; chores</h2><span class="hint">Drag across days to add · drag the ends to stretch · drag up or down to reorder</span></div>
+      ${bandHTML("w-plan", { start: m, end: addDays(m, 6), kinds: "plan", minLanes: 5, top: 8, bh: 56, thinH: 24, tall: true, spare: true, emptyNote: "Nothing planned yet. Drag across a few days to add something." }, "plan")}
       <div class="band-head dinner"><h2>Dinner</h2><span class="hint">Leftovers? Stretch it over two nights</span></div>
-      ${bandHTML("w-dinner", { start: m, end: addDays(m, 6), kinds: "dinner", minLanes: 1, top: 8, bh: 44, tall: true, spare: true }, "dinner")}
+      ${bandHTML("w-dinner", { start: m, end: addDays(m, 6), kinds: "dinner", minLanes: 1, top: 8, bh: 44, thinH: 24, tall: true, spare: true }, "dinner")}
       </div></div>`;
     renderAllBands();
     $("foot").textContent = "Click a day to add something for it, or click a date to open that day. Click an item to edit it, tick the circle to finish a chore. Changes save automatically for both of you.";
@@ -685,7 +709,7 @@ button.day:hover .dd { background: var(--line); }
     let w = sundayOf(ms); const rows = [];
     bands = new Map();
     while (w <= me) {
-      rows.push(bandHTML("m-" + w, { start: w, end: addDays(w, 6), kinds: "all", minLanes: 3, top: 30, bh: 22, small: true, nums: true }, "mrow", d => (d < ms || d > me) ? " out" : ""));
+      rows.push(bandHTML("m-" + w, { start: w, end: addDays(w, 6), kinds: "all", minLanes: 3, top: 30, bh: 22, thinH: 16, small: true, nums: true }, "mrow", d => (d < ms || d > me) ? " out" : ""));
       w = addDays(w, 7);
     }
     $("view").innerHTML = `<div class="board-scroll"><div class="board">${daysHeader(sundayOf(ms), false, true)}${rows.join("")}</div></div>`;
@@ -703,8 +727,7 @@ button.day:hover .dd { background: var(--line); }
   function renderDay() {
     const d = S.cursor;
     bands = new Map();
-    const dr = k => (k === "away" || k === "pto") ? 0 : k === "chore" ? 2 : 1;
-    const list = inRange(d, d).sort((x, y) => dr(x.kind) - dr(y.kind) || timeKey(x).localeCompare(timeKey(y)) || x.title.localeCompare(y.title));
+    const list = inRange(d, d).sort(byRank);
     const main = list.filter(i => i.kind !== "dinner"), din = list.filter(i => i.kind === "dinner");
     $("view").innerHTML = `<div class="dayview">
       <section class="dv-col"><h2>Plans &amp; chores <button type="button" class="btn" data-act="add" data-kind="plan">+ Add</button></h2>
@@ -962,7 +985,7 @@ button.day:hover .dd { background: var(--line); }
     if (bar) {
       const it = getItem(bar.dataset.id); if (!it) return;
       const a = act && act.dataset.act;
-      drag = { type: a === "rl" ? "rl" : a === "rr" ? "rr" : "move", id: it.id, d0, x0: e.clientX, y0: e.clientY, orig: { start: it.start, end: it.end }, moved: false, preview: null };
+      drag = { type: a === "rl" ? "rl" : a === "rr" ? "rr" : "move", id: it.id, d0, x0: e.clientX, y0: e.clientY, orig: { start: it.start, end: it.end }, moved: false, preview: null, bandKey: bandEl.dataset.key, group: GROUP_OF[it.kind] ?? 1, reorder: null };
     } else {
       // A finger on an empty day should scroll the calendar like normal; only a plain tap adds an item.
       if (e.pointerType === "touch") { tap = { x: e.clientX, y: e.clientY, d0, kind: cfg.kinds === "dinner" ? "dinner" : "plan" }; return; }
@@ -989,7 +1012,48 @@ button.day:hover .dd { background: var(--line); }
     else { end = addDays(end, n); if (end < start) end = start; }
     const p = drag.preview;
     if (!p || p.start !== start || p.end !== end) { drag.preview = { start, end }; renderAllBands(); }
+    if (drag.type === "move") updateReorder(e);
   });
+  // Up/down while dragging: find where the item would land in that day's list and show a line there.
+  function hideInsLines() { document.querySelectorAll(".ins-line").forEach(x => x.remove()); }
+  function updateReorder(e) {
+    const cfg = bands.get(drag.bandKey), el = document.querySelector(`.band[data-key="${drag.bandKey}"]`);
+    drag.reorder = null;
+    const bar = el && el.querySelector(".bar.dragging");
+    const dy = e.clientY - drag.y0;
+    if (bar) bar.style.transform = `translateY(${dy}px)`;
+    const hide = () => { const l = el && el.querySelector(".ins-line"); if (l) l.hidden = true; };
+    if (!cfg || !el || !cfg.layout || Math.abs(dy) < 12) return hide();
+    const r = el.getBoundingClientRect();
+    const col = Math.floor((e.clientX - r.left) / r.width * 7), y = e.clientY - r.top;
+    if (col < 0 || col > 6 || y < 0 || y > r.height) return hide();
+    const others = cfg.layout.filter(o => o.g === drag.group && o.c0 <= col && o.c1 >= col && o.it.id !== drag.id).sort((p, q) => p.y - q.y);
+    if (!others.length) return hide();
+    const idx = others.filter(o => o.y + o.h / 2 < y).length;
+    const me = cfg.layout.find(o => o.it.id === drag.id);
+    if (me && me.c0 <= col && me.c1 >= col && others.filter(o => o.y < me.y).length === idx) return hide(); // already there
+    drag.reorder = { list: others.map(o => o.it), idx };
+    let line = el.querySelector(".ins-line");
+    if (!line) { line = document.createElement("div"); line.className = "ins-line"; el.appendChild(line); }
+    line.hidden = false;
+    line.style.top = (idx === 0 ? others[0].y - 3 : others[idx - 1].y + others[idx - 1].h + 1) + "px";
+    line.style.left = `calc(${(col / 7) * 100}% + 2px)`; line.style.width = `calc(${100 / 7}% - 4px)`;
+  }
+  // New rank for an item dropped at position idx of a day's list. Dropping at the very top or bottom
+  // puts it above or below everything of its kind, so a multi-day item lands at the bottom on every day.
+  function reorderPlan(re, it, group) {
+    const L = re.list.slice(); L.splice(re.idx, 0, it);
+    const pool = [...S.items.values()].filter(x => (GROUP_OF[x.kind] ?? 1) === group).map(effRank);
+    if (re.idx === 0) return { rank: Math.min(...pool) - 1000, others: [] };
+    if (re.idx === L.length - 1) return { rank: Math.max(...pool) + 1000, others: [] };
+    const prev = effRank(L[re.idx - 1]), next = effRank(L[re.idx + 1]);
+    if (next - prev > 0.002) return { rank: (prev + next) / 2, others: [] };
+    // ties: spread this day's items out in the new order, within the same range of ranks
+    const V = L.map(effRank).sort((a, b) => a - b), others = []; let rank;
+    L.forEach((x, i) => { const v = V[i] + i * 0.001; if (x === it) rank = v; else if (v !== effRank(x)) others.push([x, v]); });
+    return { rank, others };
+  }
+  const baseDoc = x => x.seriesId ? S.items.get(x.seriesId) : (S.items.get(x.id) || x);
   view.addEventListener("pointerup", e => {
     if (tap) {
       const t = tap; tap = null;
@@ -1006,14 +1070,24 @@ button.day:hover .dd { background: var(--line); }
     }
     const it = getItem(d.id);
     if (!it) { render(); return; }
+    hideInsLines();
     if (!d.moved) { renderAllBands(); openEditor(it); return; }
-    if (d.preview && (d.preview.start !== it.start || d.preview.end !== it.end)) {
-      if (it.seriesId) applyScope("save", "this", it, { ...it, ...d.preview }); // dragging one repeat moves only that one
-      else persist({ ...it, ...d.preview });
+    const datesChanged = d.preview && (d.preview.start !== it.start || d.preview.end !== it.end);
+    const plan = d.reorder ? reorderPlan(d.reorder, it, d.group) : null;
+    const writes = new Map();
+    if (plan) for (const [x, v] of plan.others) { const b = baseDoc(x); if (b && !writes.has(b.id)) writes.set(b.id, { ...b, rank: v }); }
+    const rankPart = plan ? { rank: plan.rank } : {};
+    if (datesChanged) {
+      if (writes.size) commit([...writes.values()], []);
+      if (it.seriesId) applyScope("save", "this", it, { ...it, ...d.preview, ...rankPart }); // dragging one repeat moves only that one
+      else persist({ ...baseDoc(it), ...d.preview, ...rankPart });
+    } else if (plan) {
+      const b = baseDoc(it); writes.set(b.id, { ...(writes.get(b.id) || b), rank: plan.rank });
+      commit([...writes.values()], []);
     } else renderAllBands();
   });
   // pointercancel fires when the browser takes over to scroll: tidy up without rebuilding the board
-  view.addEventListener("pointercancel", () => { tap = null; if (drag) { drag = null; markSel(); renderAllBands(); } });
+  view.addEventListener("pointercancel", () => { tap = null; hideInsLines(); if (drag) { drag = null; markSel(); renderAllBands(); } });
   view.addEventListener("click", e => {
     const a = e.target.closest("[data-act]"); if (!a) return;
     const act = a.dataset.act;
@@ -1169,7 +1243,7 @@ button.day:hover .dd { background: var(--line); }
       else for (const x of inGroup) dels.push(x.id);
     } else if (scope === "this") {
       exceptThis();
-      writes.push({ id: uid(), ...fields(F), start: F.start, end: F.end, done: !!occ.done, group: g });
+      writes.push({ id: uid(), ...fields(F), start: F.start, end: F.end, done: !!occ.done, group: g, rank: typeof F.rank === "number" ? F.rank : occ.rank });
     } else if (scope === "following") {
       endBefore();
       const n = { id: uid(), ...fields(F), start: F.start, end: F.end, done: false, group: g };
