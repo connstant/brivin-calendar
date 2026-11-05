@@ -574,7 +574,9 @@ button.day:hover .dd { background: var(--line); }
   }
   let statusMsg = "";
   function onWriteErr(e) {
-    statusMsg = e && (e.code === "permission_denied" || e.code === "not_granted") ? "You can view this planner but not change it. Ask for edit access." : "Couldn't save that change. Check your connection and try again.";
+    statusMsg = e && e.code === "not_set_up" ? "Not saved: the database isn't set up yet. Run supabase/setup.sql in Supabase's SQL Editor, then reload."
+      : e && (e.code === "permission_denied" || e.code === "not_granted") ? "Not saved: the database refused this login. Check that loginEmail in config.js matches the login in setup.sql."
+      : "Couldn't save that change. Check your connection and try again.";
     renderStatus();
   }
 
@@ -1257,6 +1259,7 @@ button.day:hover .dd { background: var(--line); }
   function dbErr(error) {
     const e = new Error(error.message || "Save failed");
     e.code = /row-level security|permission denied/i.test(error.message || "") ? "permission_denied" : "unavailable";
+    if (/does not exist|42P01|PGRST205|schema cache/i.test((error.message || "") + " " + (error.code || ""))) e.code = "not_set_up";
     if (isAuthErr(error)) signedOutElsewhere();
     return e;
   }
@@ -1292,7 +1295,13 @@ button.day:hover .dd { background: var(--line); }
           const { data, error } = await sb.from("docs").select("coll,id,data").order("coll").order("id").range(from, from + 999);
           if (error) {
             if (isAuthErr(error)) { signedOutElsewhere(); return false; }
-            statusMsg = "Can't reach the planner right now. Check your connection; it will retry."; renderStatus();
+            const m = (error.message || "") + " " + (error.code || "");
+            statusMsg = /does not exist|42P01|PGRST205|schema cache/i.test(m)
+              ? "The database isn't set up yet. Run supabase/setup.sql in Supabase's SQL Editor, then reload."
+              : /permission denied|42501/i.test(m)
+              ? "The database refused this login. Rerun supabase/setup.sql, then reload."
+              : "Can't reach the planner right now (" + (error.message || "no response") + "). It will retry.";
+            S.mode = "error"; render();
             return false;
           }
           rows.push(...data);

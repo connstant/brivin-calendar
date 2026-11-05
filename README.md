@@ -12,8 +12,8 @@ and a four-list shopping list. One shared password; each device stays signed in.
 
 ### 1. Supabase (data + password)
 1. Create a free project at supabase.com.
-2. **Authentication → Users → Add user → Create new user.** Email: `planner@example.com`
-   (a stand-in login name, so no real email is published in `config.js`). Password: the shared
+2. **Authentication → Users → Add user → Create new user.** Email: the same address as
+   `loginEmail` in `public/config.js` and in `supabase/setup.sql` (currently `plan@brivin.com`). Password: the shared
    password you want. Tick **Auto Confirm User**.
 3. **Authentication → Sign In / Providers → Email:** turn off **Allow new users to sign up**.
    (The database already refuses other logins; this keeps strangers from making accounts at all.)
@@ -30,7 +30,7 @@ Deploy the folder with the Vercel CLI (`vercel deploy --prod`) or import it from
 - Open the site, enter the password once per device. It stays signed in.
 - On a phone: Share → **Add to Home Screen** to open it like an app.
 - **Sign out** (top right) → *Sign out all devices* if a phone is lost.
-- To change the password: Supabase → Authentication → Users → planner@example.com →
+- To change the password: Supabase → Authentication → Users → the planner login →
   ⋯ → change password, then use *Sign out all devices*. (The login has no real inbox, so
   "send reset email" won't arrive; change it from the dashboard instead.)
 
