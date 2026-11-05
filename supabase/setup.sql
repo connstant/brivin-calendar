@@ -1,12 +1,12 @@
 -- Our Week: database setup for Supabase.
 -- Paste this whole file into Supabase > SQL Editor > New query, then press Run.
--- BEFORE running: replace YOUR-LOGIN-EMAIL below with the email of the login you created
--- (Authentication > Users > Add user). Only that login can read or change the planner.
+-- The planner login is planner@example.com (a stand-in, not a real inbox; it must match
+-- loginEmail in public/config.js). Only that login can read or change the planner.
 
 -- 1) Who may use the planner. Not readable by anyone through the API.
 create table if not exists public.planner_members (email text primary key);
 alter table public.planner_members enable row level security;
-insert into public.planner_members (email) values (lower('YOUR-LOGIN-EMAIL'))
+insert into public.planner_members (email) values (lower('planner@example.com'))
   on conflict do nothing;
 
 create or replace function public.is_planner_member()

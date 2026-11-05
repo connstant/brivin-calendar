@@ -3,5 +3,7 @@
 window.OUR_WEEK_CONFIG = {
   supabaseUrl: "https://YOUR-PROJECT.supabase.co",   // Supabase > Project Settings > API > Project URL
   supabaseAnonKey: "YOUR-ANON-KEY",                    // Supabase > Project Settings > API > anon public key
-  loginEmail: "YOUR-LOGIN-EMAIL",                      // the email of the login you created in Supabase > Authentication
+  // The planner's login name. Not a real inbox: example.com is reserved and never receives mail,
+  // so no personal email is published. Create the Supabase login with this exact address.
+  loginEmail: "planner@example.com",
 };
