@@ -46,6 +46,36 @@ do $$ begin
   alter publication supabase_realtime add table public.docs;
 exception when duplicate_object then null; end $$;
 
--- 4) Quick check: should list the table and your login.
+-- 4) Reminders: each device that turns on notifications saves its push address here.
+create table if not exists public.push_subscriptions (
+  endpoint text primary key check (endpoint ~ '^https://' and length(endpoint) < 1000),
+  p256dh text not null check (length(p256dh) < 200),
+  auth text not null check (length(auth) < 100),
+  who text not null default 'all' check (who in ('all', 'a', 'b')),
+  tz text not null default 'UTC' check (length(tz) < 64),
+  updated_at timestamptz not null default now()
+);
+alter table public.push_subscriptions enable row level security;
+revoke all on public.push_subscriptions from anon;
+grant select, insert, update, delete on public.push_subscriptions to authenticated;
+drop policy if exists "members manage devices" on public.push_subscriptions;
+create policy "members manage devices" on public.push_subscriptions for all to authenticated
+  using (public.is_planner_member()) with check (public.is_planner_member());
+
+-- Which reminders went out already, so none is sent twice. Only the reminder function uses it.
+create table if not exists public.notify_sent (key text primary key, sent_at timestamptz not null default now());
+alter table public.notify_sent enable row level security;
+revoke all on public.notify_sent from anon, authenticated;
+
+-- A random password the every-minute timer uses to call the reminder function. Made once, here.
+create table if not exists public.reminder_secret (
+  id int primary key default 1 check (id = 1),
+  secret text not null default replace(gen_random_uuid()::text, '-', '') || replace(gen_random_uuid()::text, '-', '')
+);
+alter table public.reminder_secret enable row level security;
+revoke all on public.reminder_secret from anon, authenticated;
+insert into public.reminder_secret (id) values (1) on conflict do nothing;
+
+-- 5) Quick check: should list the table and your login.
 select (select count(*) from public.docs) as planner_rows,
        (select string_agg(email, ', ') from public.planner_members) as allowed_login;
