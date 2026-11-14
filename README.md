@@ -26,9 +26,33 @@ and a four-list shopping list. One shared password; each device stays signed in.
 Deploy the folder with the Vercel CLI (`vercel deploy --prod`) or import it from a Git repo.
 `vercel.json` sets the output folder to `public/` and adds security headers.
 
+### 3. Reminders (optional): phone notifications
+Notifications go out when something with a start time begins, plus any earlier reminders picked on
+the item (15 min, 30 min, 1 hour, 1 day). They work on Android, desktop browsers, and iPhone (iOS 16.4+)
+when Our Week is opened from its Home Screen icon. Nothing to publish in an app store.
+
+1. **Make a key pair** on your computer: `npx web-push generate-vapid-keys`.
+   Put the **Public Key** in `public/config.js` as `vapidPublicKey`. Keep the private key out of the repo.
+2. **Rerun `supabase/setup.sql`** in the SQL Editor (adds the reminder tables; your data is untouched).
+3. **Deploy the function** `supabase/functions/send-reminders` with **JWT verification off**. Either:
+   - CLI: `supabase functions deploy send-reminders --no-verify-jwt --project-ref <project-ref>`, or
+   - Dashboard: **Edge Functions → Deploy a new function → Via editor**, name it `send-reminders`, paste
+     `index.ts` and `reminders.ts` as two files, deploy, then turn off **Verify JWT** in its settings.
+4. **Edge Functions → Secrets:** add `VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY` from step 1, and
+   `VAPID_SUBJECT` = your site's address (e.g. `https://our-week.vercel.app`).
+5. **SQL Editor:** run `supabase/reminders.sql`. It calls the function every minute.
+6. Redeploy the site, then on each phone: **Reminders** (top of the page) → **Turn on** → **Send a test**.
+   Each phone chooses whether it hears about everything or just one person's items (plus shared ones).
+
+If the test says the service didn't answer, check the function's **Logs** in Supabase.
+`supabase/reminders.sql` also lists queries to see recent runs.
+
 ## Using it
 - Open the site, enter the password once per device. It stays signed in.
-- On a phone: Share → **Add to Home Screen** to open it like an app.
+- On a phone: Share → **Add to Home Screen** to open it like an app (on iPhone, needed for reminders).
+- **Week and Day views** show a timeline in 30-minute steps. Things with a start time sit on it; drag one to
+  move it, or drag its bottom edge to change when it ends. Multi-day items, PTO and trips are in **All day**
+  at the top; things without a time are in **Anytime** below. Click or drag on the timeline to add at a time.
 - **Sign out** (top right) → *Sign out all devices* if a phone is lost.
 - To change the password: Supabase → Authentication → Users → the planner login →
   ⋯ → change password, then use *Sign out all devices*. (The login has no real inbox, so
@@ -38,3 +62,5 @@ Deploy the folder with the Vercel CLI (`vercel deploy --prod`) or import it from
 - The Supabase free tier pauses a project after about a week with no use. If the site
   says it can't reach the planner, open the Supabase dashboard and press **Restore project**.
 - `config.js` values are meant to be public; the anon key can't read anything without the password.
+  The same goes for `vapidPublicKey`; only the private key (a Supabase secret) must stay hidden.
+- Reminders can't go out while the Supabase project is paused (see above).

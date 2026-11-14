@@ -311,6 +311,53 @@ button.day:hover .dd { background: var(--line); }
 .acct-list { display: grid; gap: 8px; }
 .acct-list .btn { text-align: left; padding: 11px 14px; }
 .acct-list .btn small { display: block; font-weight: 500; color: var(--muted); margin-top: 2px; }
+/* timeline: timed items on a 30-minute grid (Week and Day views). All-day strip on top, "Anytime" below. */
+.board.tlw { --gut: 46px; }
+.board.tlw .days, .board.tlw .band { margin-left: var(--gut); }
+.board.tlw .band.dinner { box-shadow: calc(-1 * var(--gut)) 0 0 var(--dinner-bg); }
+.board.tlw .band.allday { border-bottom: 1px solid var(--line); }
+.board.tlw .band.any { border-top: 1px solid var(--line); }
+.gut-lbl { position: absolute; left: calc(-1 * var(--gut)); width: calc(var(--gut) - 6px); top: 8px; text-align: right; font-size: 10.5px; font-weight: 700; color: var(--muted); line-height: 1.15; pointer-events: none; }
+.tl { position: relative; --gut: 46px; margin-left: var(--gut); user-select: none; -webkit-user-select: none; }
+.tl-cols { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); }
+.tl-col { border-left: 1px solid var(--line); cursor: cell; touch-action: pan-x pan-y;
+  background-image: linear-gradient(to bottom, var(--line) 1px, transparent 1px), linear-gradient(to bottom, color-mix(in srgb, var(--line) 45%, transparent) 1px, transparent 1px);
+  background-size: 100% calc(var(--slot) * 2), 100% var(--slot); }
+.tl-col.today { background-color: var(--today); }
+.dv-col .tl-col { border-right: 1px solid var(--line); }
+.tl-hr { position: absolute; left: calc(-1 * var(--gut)); width: calc(var(--gut) - 6px); text-align: right; font-size: 10.5px; color: var(--muted); transform: translateY(-50%); font-variant-numeric: tabular-nums; white-space: nowrap; pointer-events: none; }
+.tl-items { position: absolute; inset: 0; pointer-events: none; }
+.ev { position: absolute; pointer-events: auto; border-radius: 5px; padding: 1px 5px 1px 6px; font-size: 11.5px; line-height: 1.25; overflow: hidden; display: flex; flex-direction: column;
+  background: color-mix(in srgb, var(--c) 20%, var(--surface)); border-left: 3px solid var(--c); color: var(--ink); cursor: grab; touch-action: none; transition: box-shadow .12s; }
+.ev:hover { box-shadow: 0 2px 8px rgba(0,0,0,.15); z-index: 2; }
+.ev.short { flex-direction: row; align-items: center; gap: 5px; }
+.ev .ln { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.ev .t { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.ev .tm { opacity: .75; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ev .rep { opacity: .7; flex: none; }
+.ev .chk { width: 12px; height: 12px; border-width: 1.5px; }
+.ev.done .chk::after { width: 3px; height: 6px; }
+.ev .rs { position: absolute; left: 0; right: 0; bottom: 0; height: 7px; cursor: ns-resize; }
+.ev.dragging { opacity: .85; box-shadow: 0 4px 14px rgba(0,0,0,.25); z-index: 5; cursor: grabbing; transition: none; }
+.dv-col .ev { font-size: 13px; padding: 2px 8px; }
+.tl-now { position: absolute; height: 2px; margin-top: -1px; background: var(--b); pointer-events: none; z-index: 4; }
+.tl-now::before { content: ""; position: absolute; left: -4px; top: -3px; width: 8px; height: 8px; border-radius: 50%; background: var(--b); }
+.tl-sel { position: absolute; background: var(--sel); border: 1.5px solid var(--a); border-radius: 5px; pointer-events: none; font-size: 11px; font-weight: 600; padding: 1px 5px; color: var(--a); overflow: hidden; }
+.dv-sub { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; margin-top: 2px; }
+.card.slim { padding: 7px 10px; }
+.card.slim .t { font-size: 14px; }
+
+/* notifications */
+.notify { display: grid; gap: 8px; }
+.notify .sub-lbl { font-size: 12px; color: var(--muted); font-weight: 600; }
+.notify .hint { color: var(--muted); font-size: 12px; }
+.notify .hint:empty { display: none; }
+.seg.multi button[aria-pressed="true"] { background: var(--a); border-color: var(--a); color: var(--on-color); }
+.bell { display: inline-flex; align-items: center; gap: 6px; }
+.bell svg { width: 15px; height: 15px; }
+.bell.on svg { color: var(--a); }
+.note { margin: 0 0 12px; color: var(--muted); line-height: 1.5; }
+.note.ok { color: var(--ink); }
 @media (max-width: 720px) { .dayview { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 560px) { h1 { font-size: 25px; } .subbar .theme { margin-left: 0; } }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
@@ -365,6 +412,7 @@ button.day:hover .dd { background: var(--line); }
       <button type="button" data-v="dark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>Dark</button>
       <button type="button" data-v="auto">Auto</button>
     </div>
+    <button type="button" class="btn acct-btn bell" id="notifBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>Reminders</button>
     <button type="button" class="btn acct-btn" id="acctBtn">Sign out</button>
   </div>
   <div class="status" id="status"></div>
@@ -415,6 +463,22 @@ button.day:hover .dd { background: var(--line); }
   </div>
 </div>
 
+<div class="scrim" id="notif" hidden>
+  <div class="sheet" role="dialog" aria-labelledby="notifTitle">
+    <h3 id="notifTitle">Reminders on this device</h3>
+    <p class="note" id="notifMsg"></p>
+    <div class="f" id="notifWhoBox"><span class="lbl">Notify this device about</span><div class="seg" id="notifWho"></div></div>
+    <div class="err" id="notifErr" role="alert"></div>
+    <div class="actions">
+      <button type="button" class="btn" id="notifTest">Send a test</button>
+      <button type="button" class="btn danger" id="notifOff">Turn off</button>
+      <span class="sp"></span>
+      <button type="button" class="btn" id="notifClose">Close</button>
+      <button type="button" class="btn primary" id="notifOn">Turn on</button>
+    </div>
+  </div>
+</div>
+
 <div class="scrim" id="scrim" hidden>
   <form class="sheet" id="editor" autocomplete="off">
     <div id="scopeBox" hidden>
@@ -450,6 +514,11 @@ button.day:hover .dd { background: var(--line); }
       <div class="f"><label for="fTEnd">End time</label><input type="time" id="fTEnd" step="300"></div>
     </div>
     <div class="time-hint" id="timeHint"></div>
+    <div class="f notify" id="notifyBox" hidden><span class="lbl">Notifications</span>
+      <div class="seg" id="fNotify" role="group" aria-label="Notifications"></div>
+      <div class="notify" id="remindBox"><span class="sub-lbl">Also remind me before</span><div class="seg multi" id="fRemind" role="group" aria-label="Remind me before"></div></div>
+      <div class="hint" id="notifyHint"></div>
+    </div>
     <div class="f"><label for="fNotes">Notes</label><textarea id="fNotes" maxlength="500" placeholder="Grocery list, details…"></textarea></div>
     <div class="gcal-row"><a class="btn gcal" id="gcalBtn" href="https://calendar.google.com/calendar/render" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4M12 12.5v5M9.5 15h5"/></svg><span id="gcalLbl">Add to Google Calendar</span></a><span class="hint" id="gcalHint"></span></div>
     <div class="err" id="fErr"></div>
@@ -498,6 +567,8 @@ button.day:hover .dd { background: var(--line); }
     else root.removeAttribute("data-theme");
     document.querySelectorAll("#themeTabs button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.v === t)));
   }
+  const REMIND_MINS = [15, 30, 60, 1440];
+  const deviceTz = (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"; } catch (_) { return "UTC"; } })();
   let theme = store.get("our-week-theme") || "auto";
   applyTheme(theme);
 
@@ -512,6 +583,9 @@ button.day:hover .dd { background: var(--line); }
     mode: "loading", // loading | db | local
     db: null,
   };
+  // a notification tap opens /?day=YYYY-MM-DD
+  const qDay = new URLSearchParams(location.search).get("day");
+  if (qDay && /^\d{4}-\d{2}-\d{2}$/.test(qDay)) { S.view = "day"; S.cursor = qDay; try { history.replaceState(null, "", "/"); } catch (_) {} }
   const LS_KEY = "our-week-local-v1";
   const uid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
 
@@ -525,6 +599,10 @@ button.day:hover .dd { background: var(--line); }
     if (it.repeat) { o.repeat = { days: it.repeat.days, every: it.repeat.every || 1, until: it.repeat.until || "" }; o.exceptions = it.exceptions || {}; o.doneDates = it.doneDates || {}; }
     if (it.group) o.group = it.group;
     if (typeof it.rank === "number") o.rank = it.rank;
+    // notifications: on unless turned off; extra reminders in minutes before the start; the time zone the times are in
+    if (it.notify === false) o.notify = false;
+    if (Array.isArray(it.remind) && it.remind.length) o.remind = it.remind.filter(m => REMIND_MINS.includes(m));
+    if (it.tStart) o.tz = it.tz || deviceTz;
     return o;
   }
   // Recurring series: one stored doc with repeat {days: [0-6, Sun=0], every: N weeks, until}.
@@ -591,7 +669,8 @@ button.day:hover .dd { background: var(--line); }
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const color = who => who === "a" ? "var(--a)" : who === "b" ? "var(--b)" : "var(--both)";
   const whoName = who => who === "a" ? S.names.a : who === "b" ? S.names.b : "Both";
-  const itemNow = it => (drag && drag.preview && drag.id === it.id) ? { ...it, ...drag.preview } : it;
+  const itemNow = it => (drag && drag.preview && drag.id === it.id) ? { ...it, ...drag.preview }
+    : (tdrag && tdrag.preview && tdrag.id === it.id) ? { ...it, ...tdrag.preview } : it;
   // times are "HH:MM" (24h); older items may only have a free-text `time`
   function fmtClock(t) { const [h, m] = t.split(":").map(Number); const ap = h < 12 ? "am" : "pm", h12 = h % 12 || 12; return m ? `${h12}:${pad(m)} ${ap}` : `${h12} ${ap}`; }
   function timeLabel(it) {
@@ -629,7 +708,7 @@ button.day:hover .dd { background: var(--line); }
     const t = todayISO();
     let cells = "";
     for (let i = 0; i < 7; i++) { const d = addDays(cfg.start, i); cells += `<div class="cell${d === t ? " today" : ""}${cellFn ? cellFn(d) : ""}" data-date="${d}">${cfg.nums ? `<button type="button" class="num" data-act="day" data-date="${d}" aria-label="Open ${fmt(d)}">${parse(d).getDate()}</button>` : ""}</div>`; }
-    return `<div class="band ${extraClass}" data-key="${key}"><div class="grid">${cells}</div><div class="items"></div></div>`;
+    return `<div class="band ${extraClass}" data-key="${key}">${cfg.label ? `<span class="gut-lbl">${cfg.label}</span>` : ""}<div class="grid">${cells}</div><div class="items"></div></div>`;
   }
   function pack(list) {
     const lanes = [];
@@ -656,7 +735,9 @@ button.day:hover .dd { background: var(--line); }
     const cfg = bands.get(key); const el = document.querySelector(`.band[data-key="${key}"]`);
     if (!cfg || !el) return;
     const all = inRange(cfg.start, cfg.end)
-      .filter(it => cfg.kinds === "all" || (cfg.kinds === "dinner") === (it.kind === "dinner"))
+      // a band with its own filter keeps the item being dragged, so it doesn't jump bands mid-drag
+      .filter(it => cfg.filter ? (drag && drag.id === it.id ? drag.bandKey === key : cfg.filter(it))
+        : cfg.kinds === "all" || (cfg.kinds === "dinner") === (it.kind === "dinner"))
       .map(it => ({ it, c0: Math.max(0, diff(cfg.start, it.start)), c1: Math.min(6, diff(cfg.start, it.end)) }));
     let y = cfg.top; const layout = [];
     [0, 1, 2].forEach(g => {
@@ -683,6 +764,58 @@ button.day:hover .dd { background: var(--line); }
   }
   const renderAllBands = () => { for (const k of bands.keys()) renderBandItems(k); };
 
+  // ---------- timeline (Week and Day views) ----------
+  // Single-day items with a start time sit on a 30-minute grid. Multi-day items, PTO and trips go in
+  // the All day strip on top; items without a time go in Anytime below. Dinners keep their own band.
+  const SLOT = 14; // px per 30 minutes
+  const toMin = t => +t.slice(0, 2) * 60 + +t.slice(3, 5);
+  const fromMin = m => { m = Math.max(0, Math.min(1439, Math.round(m))); return `${pad(Math.floor(m / 60))}:${pad(m % 60)}`; };
+  const endMin = it => { const s = toMin(it.tStart), e = it.tEnd ? toMin(it.tEnd) : s + 30; return Math.max(e, s + 15); };
+  const isAllDay = it => it.kind !== "dinner" && (isThin(it.kind) || it.start !== it.end);
+  const isTimed = it => it.kind !== "dinner" && !isAllDay(it) && !!it.tStart;
+  const isAnytime = it => it.kind !== "dinner" && !isAllDay(it) && !it.tStart;
+  let tl = null, tdrag = null, ttap = null, tsel = null; // tl: {days, m0, hilite}
+  function timelineHTML(days, hilite) {
+    let h0 = 6; // starts at 6 am, or earlier if something does
+    for (const it of inRange(days[0], days[days.length - 1])) if (isTimed(it)) h0 = Math.min(h0, Math.floor(toMin(it.tStart) / 60));
+    tl = { days, m0: h0 * 60, hilite };
+    const t = todayISO();
+    let labels = "";
+    for (let h = h0; h < 24; h++) labels += `<span class="tl-hr" style="top:${(h - h0) * 2 * SLOT}px">${fmtClock(pad(h) + ":00")}</span>`;
+    const cols = days.map(d => `<div class="tl-col${hilite && d === t ? " today" : ""}" data-date="${d}"></div>`).join("");
+    return `<div class="tl" style="--n:${days.length};--slot:${SLOT}px;height:${(24 - h0) * 2 * SLOT}px">${labels}<div class="tl-cols">${cols}</div><div class="tl-items"></div></div>`;
+  }
+  function renderTimelineItems() {
+    const el = $("view").querySelector(".tl"); if (!el || !tl) return;
+    const n = tl.days.length, y = m => (m - tl.m0) / 30 * SLOT, out = [];
+    const all = inRange(tl.days[0], tl.days[n - 1]).filter(isTimed);
+    tl.days.forEach((d, col) => {
+      const list = all.filter(it => it.start === d).map(it => ({ it, s: toMin(it.tStart), e: endMin(it), col }))
+        .sort((p, q) => p.s - q.s || q.e - p.e || byRank(p.it, q.it));
+      // overlapping items share the column side by side
+      let cluster = [], lanes = [], maxEnd = -1;
+      const flush = () => { for (const o of cluster) o.k = lanes.length; cluster = []; lanes = []; };
+      for (const o of list) {
+        if (o.s >= maxEnd) flush();
+        let l = lanes.findIndex(e => e <= o.s); if (l < 0) { l = lanes.length; lanes.push(0); }
+        lanes[l] = o.e; o.lane = l; cluster.push(o); maxEnd = Math.max(maxEnd, o.e);
+      }
+      flush(); out.push(...list);
+    });
+    let html = out.map(({ it, s, e, col, lane, k }) => {
+      const top = Math.max(0, y(s)) + 1, h = Math.max(SLOT - 2, y(e) - y(s) - 2), w = 100 / n / k;
+      const pre = it.kind === "chore" ? `<button type="button" class="chk" data-act="toggle" aria-label="${it.done ? "Mark not done" : "Mark done"}"></button>` : "";
+      return `<div class="ev ${it.kind}${it.done ? " done" : ""}${h < 3 * SLOT - 2 ? " short" : ""}${tdrag && tdrag.id === it.id ? " dragging" : ""}" data-id="${esc(it.id)}" tabindex="0" role="button"
+        aria-label="${esc(it.title)}, ${esc(timeLabel(it))}, ${esc(whoName(it.who))}" title="${esc(it.title)} · ${esc(timeLabel(it))}"
+        style="--c:${color(it.who)};top:${top}px;height:${h}px;left:calc(${col * 100 / n + lane * w}% + 2px);width:calc(${w}% - 4px)">
+        <span class="ln">${pre}<span class="t">${esc(it.title)}</span>${it.seriesId ? `<span class="rep" aria-label="Repeats">↻</span>` : ""}</span><span class="tm">${esc(timeLabel(it))}</span><span class="rs" data-act="rs"></span></div>`;
+    }).join("");
+    const ti = tl.days.indexOf(todayISO()), now = new Date(), nm = now.getHours() * 60 + now.getMinutes();
+    if (ti >= 0 && nm >= tl.m0) html += `<div class="tl-now" style="top:${y(nm)}px;left:${ti * 100 / n}%;width:${100 / n}%"></div>`;
+    if (tsel) { const c = tl.days.indexOf(tsel.date); html += `<div class="tl-sel" style="top:${y(tsel.a)}px;height:${y(tsel.b) - y(tsel.a)}px;left:calc(${c * 100 / n}% + 2px);width:calc(${100 / n}% - 4px)">${fmtClock(fromMin(tsel.a))} – ${fmtClock(fromMin(tsel.b))}</div>`; }
+    el.querySelector(".tl-items").innerHTML = html;
+  }
+
   // ---------- views ----------
   function daysHeader(start, clickable, compact) {
     const t = todayISO();
@@ -693,16 +826,17 @@ button.day:hover .dd { background: var(--line); }
     }).join("") + `</div>`;
   }
   function renderWeek() {
-    const m = sundayOf(S.cursor);
+    const m = sundayOf(S.cursor), e = addDays(m, 6);
     bands = new Map();
-    $("view").innerHTML = `<div class="board-scroll"><div class="board">${daysHeader(m, true)}
-      <div class="band-head"><h2>Plans &amp; chores</h2><span class="hint">Drag across days to add · drag the ends to stretch · drag up or down to reorder</span></div>
-      ${bandHTML("w-plan", { start: m, end: addDays(m, 6), kinds: "plan", minLanes: 5, top: 8, bh: 56, thinH: 24, tall: true, spare: true, emptyNote: "Nothing planned yet. Drag across a few days to add something." }, "plan")}
+    $("view").innerHTML = `<div class="board-scroll"><div class="board tlw">${daysHeader(m, true)}
+      ${bandHTML("w-allday", { start: m, end: e, filter: isAllDay, label: "All day", minLanes: 1, top: 4, bh: 22, thinH: 18 }, "allday")}
+      ${timelineHTML(Array.from({ length: 7 }, (_, i) => addDays(m, i)), true)}
+      ${bandHTML("w-any", { start: m, end: e, filter: isAnytime, label: "Any&shy;time", minLanes: 1, top: 6, bh: 34, thinH: 18, tall: true, spare: true, emptyNote: "Plans without a time land here." }, "any")}
       <div class="band-head dinner"><h2>Dinner</h2><span class="hint">Leftovers? Stretch it over two nights</span></div>
-      ${bandHTML("w-dinner", { start: m, end: addDays(m, 6), kinds: "dinner", minLanes: 1, top: 8, bh: 44, thinH: 24, tall: true, spare: true }, "dinner")}
+      ${bandHTML("w-dinner", { start: m, end: e, kinds: "dinner", minLanes: 1, top: 8, bh: 44, thinH: 24, tall: true, spare: true }, "dinner")}
       </div></div>`;
-    renderAllBands();
-    $("foot").textContent = "Click a day to add something for it, or click a date to open that day. Click an item to edit it, tick the circle to finish a chore. Changes save automatically for both of you.";
+    renderAllBands(); renderTimelineItems();
+    $("foot").textContent = "Click or drag on the timeline to add something at a time; drag an item to move it, or its bottom edge to change when it ends. Multi-day items, PTO and trips sit in All day; things without a time sit in Anytime. Click a date to open that day.";
   }
   function renderMonth() {
     const ms = monthStart(S.cursor), me = monthEnd(S.cursor);
@@ -716,25 +850,29 @@ button.day:hover .dd { background: var(--line); }
     renderAllBands();
     $("foot").textContent = "Drag across days to add something, including across weeks. Drag an item or its ends to move or stretch it. Click a date number to open that day. Dinners sit below plans and chores.";
   }
-  function card(it) {
+  function card(it, slim) {
     const k = it.kind, span = it.start !== it.end ? `${fmtSpan(it.start, it.end)} · day ${diff(it.start, S.cursor) + 1} of ${diff(it.start, it.end) + 1}` : "";
     const meta = [timeLabel(it), k === "dinner" ? (it.who === "both" ? "Cooking together" : `${whoName(it.who)} cooks`) : whoName(it.who), k === "chore" ? "Chore" : k === "pto" ? "PTO" : k === "away" ? "Out of town" : "", it.seriesId ? repeatText(it.repeat) : "", span, it.example ? "Example" : ""].filter(Boolean).map(esc).join(" · ");
     const pre = k === "chore" ? `<button type="button" class="chk" data-act="toggle" aria-label="${it.done ? "Mark not done" : "Mark done"}"></button>`
       : (k === "dinner" || k === "pto" || k === "away") ? `<span class="cook"></span>` : `<span class="sw"></span>`;
-    return `<div class="card ${k}${it.done ? " done" : ""}" data-id="${esc(it.id)}" data-act="open" tabindex="0" role="button" style="--c:${color(it.who)}">${pre}
+    return `<div class="card ${k}${slim ? " slim" : ""}${it.done ? " done" : ""}" data-id="${esc(it.id)}" data-act="open" tabindex="0" role="button" style="--c:${color(it.who)}">${pre}
       <div class="body"><div class="t">${esc(it.title)}</div><div class="meta">${meta}</div>${it.notes ? `<div class="notes">${esc(it.notes)}</div>` : ""}</div></div>`;
   }
   function renderDay() {
     const d = S.cursor;
     bands = new Map();
     const list = inRange(d, d).sort(byRank);
-    const main = list.filter(i => i.kind !== "dinner"), din = list.filter(i => i.kind === "dinner");
+    const allDay = list.filter(isAllDay), any = list.filter(isAnytime), din = list.filter(i => i.kind === "dinner");
     $("view").innerHTML = `<div class="dayview">
       <section class="dv-col"><h2>Plans &amp; chores <button type="button" class="btn" data-act="add" data-kind="plan">+ Add</button></h2>
-        ${main.length ? main.map(card).join("") : `<div class="dv-empty">${S.mode === "loading" ? "Loading…" : "Nothing planned for this day."}</div>`}</section>
+        ${allDay.length ? `<div class="dv-sub">All day</div>${allDay.map(it => card(it, true)).join("")}` : ""}
+        ${timelineHTML([d], false)}
+        <div class="dv-sub">Anytime</div>
+        ${any.length ? any.map(it => card(it)).join("") : `<div class="dv-empty">${S.mode === "loading" ? "Loading…" : "Nothing without a time. Plans with no time land here."}</div>`}</section>
       <section class="dv-col dinner"><h2>Dinner <button type="button" class="btn" data-act="add" data-kind="dinner">+ Add</button></h2>
-        ${din.length ? din.map(card).join("") : `<div class="dv-empty">No dinner planned yet.</div>`}</section></div>`;
-    $("foot").textContent = "Click an item to edit it or change its days. Tick the circle to finish a chore.";
+        ${din.length ? din.map(it => card(it)).join("") : `<div class="dv-empty">No dinner planned yet.</div>`}</section></div>`;
+    renderTimelineItems();
+    $("foot").textContent = "Tap the timeline to add something at that time. Drag an item to move it, or its bottom edge to change when it ends. Click an item to edit it; tick the circle to finish a chore.";
   }
   function renderYear() {
     const y = +S.cursor.slice(0, 4), t = todayISO();
@@ -949,6 +1087,7 @@ button.day:hover .dd { background: var(--line); }
     const old = $("view").querySelector(".board-scroll"), keepX = old ? old.scrollLeft : 0;
     const viewKey = S.view + ":" + viewRange()[0];
     renderHeader();
+    tl = null;
     ({ day: renderDay, week: renderWeek, month: renderMonth, year: renderYear })[S.view]();
     const sc = $("view").querySelector(".board-scroll");
     if (sc && viewKey === lastViewKey) sc.scrollLeft = keepX;
@@ -1106,9 +1245,83 @@ button.day:hover .dd { background: var(--line); }
   });
   view.addEventListener("keydown", e => {
     if (e.key !== "Enter" && e.key !== " ") return;
-    const el = e.target.closest && e.target.closest(".bar, .card");
+    const el = e.target.closest && e.target.closest(".bar, .card, .ev");
     if (el && e.target === el) { e.preventDefault(); const it = getItem(el.dataset.id); if (it) openEditor(it); }
   });
+
+  // timeline: click or drag on empty space to add at a time (touch: tap, so a finger can still scroll);
+  // drag an item to move it (time, and day in Week view), or its bottom edge to change when it ends
+  function tlPoint(x, yy) {
+    const el = view.querySelector(".tl"); if (!el || !tl) return null;
+    const r = el.getBoundingClientRect(), n = tl.days.length;
+    const col = Math.max(0, Math.min(n - 1, Math.floor((x - r.left) / r.width * n)));
+    return { col, date: tl.days[col], m: tl.m0 + (yy - r.top) / SLOT * 30 };
+  }
+  const slotOf = m => Math.max(0, Math.min(1410, Math.floor(m / 30) * 30));
+  view.addEventListener("pointerdown", e => {
+    if (e.button !== 0 || !e.target.closest(".tl")) return;
+    const act = e.target.closest("[data-act]");
+    if (act && act.dataset.act === "toggle") return;
+    const p = tlPoint(e.clientX, e.clientY); if (!p) return;
+    const ev = e.target.closest(".ev");
+    if (ev) {
+      const it = getItem(ev.dataset.id); if (!it || !it.tStart) return;
+      tdrag = { type: act && act.dataset.act === "rs" ? "resize" : "move", id: it.id, x0: e.clientX, y0: e.clientY,
+        orig: { start: it.start, s: toMin(it.tStart), e: endMin(it) }, moved: false, preview: null };
+      e.preventDefault();
+    } else if (e.pointerType === "touch") { ttap = { x: e.clientX, y: e.clientY, p }; return; }
+    else {
+      const a = slotOf(p.m);
+      tsel = { date: p.date, anchor: a, a, b: a + 30 }; tdrag = { type: "create", moved: false };
+      e.preventDefault(); renderTimelineItems();
+    }
+    try { view.setPointerCapture(e.pointerId); } catch (_) {}
+  });
+  view.addEventListener("pointermove", e => {
+    if (ttap && Math.hypot(e.clientX - ttap.x, e.clientY - ttap.y) > 10) ttap = null;
+    if (!tdrag) return;
+    const p = tlPoint(e.clientX, e.clientY); if (!p) return;
+    if (tdrag.type === "create") {
+      const m = slotOf(p.m), a = Math.max(tl.m0, Math.min(tsel.anchor, m)), b = Math.max(tsel.anchor, m) + 30;
+      if (a !== tsel.a || b !== tsel.b) { tsel.a = a; tsel.b = b; tdrag.moved = true; renderTimelineItems(); }
+      return;
+    }
+    if (!tdrag.moved && Math.hypot(e.clientX - tdrag.x0, e.clientY - tdrag.y0) < 4) return;
+    tdrag.moved = true;
+    const o = tdrag.orig, dm = Math.round((e.clientY - tdrag.y0) / SLOT * 30 / 15) * 15, it = getItem(tdrag.id);
+    if (!it) return;
+    let pv;
+    if (tdrag.type === "move") {
+      const dur = o.e - o.s, st = Math.max(tl.m0, Math.min(1440 - dur, o.s + dm));
+      pv = { start: p.date, end: p.date, tStart: fromMin(st), tEnd: it.tEnd ? fromMin(st + dur) : "" };
+    } else {
+      pv = { start: o.start, end: o.start, tStart: it.tStart, tEnd: fromMin(Math.max(o.s + 15, Math.min(1440, o.e + dm))) };
+    }
+    const q = tdrag.preview;
+    if (!q || q.start !== pv.start || q.tStart !== pv.tStart || q.tEnd !== pv.tEnd) { tdrag.preview = pv; renderTimelineItems(); }
+  });
+  view.addEventListener("pointerup", e => {
+    if (ttap) {
+      const t = ttap; ttap = null;
+      if (Math.hypot(e.clientX - t.x, e.clientY - t.y) <= 10) { const a = slotOf(t.p.m); openEditor(null, { start: t.p.date, end: t.p.date, tStart: fromMin(a), tEnd: fromMin(a + 60) }); }
+      return;
+    }
+    if (!tdrag) return;
+    const d = tdrag; tdrag = null;
+    if (d.type === "create") {
+      const s = tsel; tsel = null; renderTimelineItems();
+      if (s) openEditor(null, { start: s.date, end: s.date, tStart: fromMin(s.a), tEnd: fromMin(d.moved ? s.b : s.a + 60) });
+      return;
+    }
+    const it = getItem(d.id);
+    if (!it) { render(); return; }
+    const pv = d.preview;
+    if (!d.moved || !pv) { renderTimelineItems(); openEditor(it); return; }
+    if (pv.start === it.start && pv.tStart === it.tStart && pv.tEnd === (it.tEnd || "")) { renderTimelineItems(); return; }
+    if (it.seriesId) applyScope("save", "this", it, { ...it, ...pv }); // dragging one repeat moves only that one
+    else persist({ ...baseDoc(it), ...pv });
+  });
+  view.addEventListener("pointercancel", () => { ttap = null; if (tdrag || tsel) { tdrag = null; tsel = null; renderTimelineItems(); } });
 
   // ---------- editor ----------
   const KINDS = [["plan", "Plan"], ["chore", "Chore"], ["dinner", "Dinner"], ["pto", "PTO", "var(--pto-bar)"], ["away", "Out of town", "var(--away-bar)"]];
@@ -1139,11 +1352,34 @@ button.day:hover .dd { background: var(--line); }
   $("fEvery").addEventListener("change", e => { if (ed) ed.rep.every = Math.max(1, Math.min(12, parseInt(e.target.value, 10) || 1)); e.target.value = ed ? ed.rep.every : 1; });
   $("fUntil").addEventListener("change", e => { if (ed) ed.rep.until = e.target.value; });
 
+  // notifications: only offered once the item has a start time
+  const REMIND_LBL = { 15: "15 min", 30: "30 min", 60: "1 hour", 1440: "1 day" };
+  function drawNotify() {
+    if (!ed) return;
+    const has = !!$("fTStart").value;
+    $("notifyBox").hidden = !has;
+    if (!has) return;
+    seg($("fNotify"), [["on", "On"], ["off", "Off"]], ed.notify ? "on" : "off", v => { ed.notify = v === "on"; drawNotify(); });
+    $("remindBox").hidden = !ed.notify;
+    $("fRemind").innerHTML = REMIND_MINS.map(m => `<button type="button" data-m="${m}" aria-pressed="${ed.remind.includes(m)}">${REMIND_LBL[m]}</button>`).join("");
+    const extra = ed.remind.map(m => REMIND_LBL[m]).join(", ");
+    $("notifyHint").textContent = !ed.notify ? "No notifications for this one."
+      : `Notifies when it starts${extra ? `, plus ${extra} before` : ""}.` + (pushState === "on" ? "" : " Turn on Reminders (top of the page) to get them on this device.");
+  }
+  $("fRemind").addEventListener("click", e => {
+    const b = e.target.closest("button"); if (!b || !ed) return;
+    const m = +b.dataset.m;
+    ed.remind = ed.remind.includes(m) ? ed.remind.filter(x => x !== m) : [...ed.remind, m].sort((x, y) => x - y);
+    drawNotify();
+  });
+
   function showPane(scope) { $("formBody").hidden = !!scope; $("scopeBox").hidden = !scope; }
   function openEditor(it, defaults) {
     ed = it ? { ...it } : { id: null, title: "", kind: "plan", who: "both", start: todayISO(), end: todayISO(), time: "", tStart: "", tEnd: "", notes: "", done: false, ...defaults };
     const r = ed.repeat;
     ed.rep = { on: !!r, days: new Set(r ? r.days : []), every: (r && r.every) || 1, until: (r && r.until) || "" };
+    ed.notify = ed.notify !== false;
+    ed.remind = Array.isArray(ed.remind) ? ed.remind.filter(m => REMIND_MINS.includes(m)) : [];
     delArmed = false; pending = null;
     $("edTitle").textContent = it ? (ed.seriesId ? "Edit repeating item" : "Edit") : ed.kind === "dinner" ? "Plan dinner" : "New item";
     $("fTitle").value = ed.title; $("fStart").value = ed.start; $("fEnd").value = ed.end;
@@ -1152,7 +1388,7 @@ button.day:hover .dd { background: var(--line); }
     $("timeHint").textContent = !ed.tStart && ed.time && !legacy ? `Earlier note: "${ed.time}". Pick a start time to replace it.` : "";
     $("fNotes").value = ed.notes || ""; $("fErr").textContent = "";
     $("delBtn").hidden = !it; $("delBtn").textContent = "Delete";
-    drawSegs(); drawRepeat(); showPane(null); updateGcal();
+    drawSegs(); drawRepeat(); drawNotify(); showPane(null); updateGcal();
     $("scrim").hidden = false;
     setTimeout(() => $("fTitle").focus(), 0);
   }
@@ -1174,9 +1410,10 @@ button.day:hover .dd { background: var(--line); }
     if (tEnd && !tStart) return err("Add a start time, or clear the end time.");
     if (tStart && tEnd && start === end && tEnd <= tStart) return err("The end time is before the start time.");
     const time = tStart ? "" : (ed.time || "");
-    return { title, start, end, kind: ed.kind, who: ed.who, time, tStart, tEnd, notes: $("fNotes").value.trim(), repeat };
+    return { title, start, end, kind: ed.kind, who: ed.who, time, tStart, tEnd, notes: $("fNotes").value.trim(), repeat, notify: ed.notify, remind: ed.remind.slice() };
   }
-  const fields = f => ({ title: f.title, kind: f.kind, who: f.who, time: f.time, tStart: f.tStart, tEnd: f.tEnd, notes: f.notes });
+  const fields = f => ({ title: f.title, kind: f.kind, who: f.who, time: f.time, tStart: f.tStart, tEnd: f.tEnd, notes: f.notes,
+    notify: f.notify !== false, remind: Array.isArray(f.remind) ? f.remind : [] });
 
   // ---------- Google Calendar (one-way copy via Google's event template link) ----------
   const ymd = s => s.replace(/-/g, "");
@@ -1211,7 +1448,7 @@ button.day:hover .dd { background: var(--line); }
     $("gcalLbl").textContent = ed.rep.on ? "Add repeating event to Google Calendar" : "Add to Google Calendar";
     $("gcalHint").textContent = !$("fTStart").value ? "No start time, so it goes in as an all-day event." : ed.seriesId ? "Repeats start from this date." : "Opens Google in a new tab. Click Save there.";
   }
-  $("editor").addEventListener("input", updateGcal);
+  $("editor").addEventListener("input", () => { updateGcal(); drawNotify(); });
   $("editor").addEventListener("click", () => setTimeout(updateGcal, 0));
   $("gcalBtn").addEventListener("click", () => { $("gcalBtn").href = gcalUrl(); });
   const asSingle = it => { const o = { ...it }; delete o.repeat; delete o.exceptions; delete o.doneDates; delete o.rep; delete o.seriesId; delete o.occ; return o; };
@@ -1412,7 +1649,7 @@ button.day:hover .dd { background: var(--line); }
       const m = new Map();
       for (const d of snap.docs) { const v = d.data(); if (v && v.start && v.end) m.set(d.id, { id: d.id, ...v }); }
       S.items = m;
-      if (!drag) render();
+      if (!drag && !tdrag) render();
     });
     remote.collection("shopping").onSnapshot(snap => {
       const m = new Map();
@@ -1421,9 +1658,10 @@ button.day:hover .dd { background: var(--line); }
     });
     remote.doc("settings/names").onSnapshot(s => {
       const v = s.exists ? s.data() : null;
-      if (v) { S.names = { a: v.a || "Him", b: v.b || "Her" }; if (!drag) render(); }
+      if (v) { S.names = { a: v.a || "Him", b: v.b || "Her" }; if (!drag && !tdrag) render(); }
     });
     render();
+    initPush();
     await loadAll();
     render();
     listen();
@@ -1469,6 +1707,103 @@ button.day:hover .dd { background: var(--line); }
   }
   $("outHere").onclick = () => signOut("local");
   $("outAll").onclick = () => signOut("global");
+
+  // ---------- reminders: Web Push to this device ----------
+  // The page saves this device's push address in Supabase; the send-reminders function (run every
+  // minute) sends the notifications. Each device picks whose items it hears about.
+  const VAPID = String(CFG.vapidPublicKey || "").trim();
+  const pushSupported = "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+  const isIOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+  let pushState = "off", pushWho = store.get("our-week-notify-who");
+  if (!["all", "a", "b"].includes(pushWho)) pushWho = "all";
+  const b64ToBytes = str => { const b = atob((str + "=".repeat((4 - str.length % 4) % 4)).replace(/-/g, "+").replace(/_/g, "/")); return Uint8Array.from(b, c => c.charCodeAt(0)); };
+  async function getSub() {
+    try { const r = await navigator.serviceWorker.getRegistration(); return r ? await r.pushManager.getSubscription() : null; } catch (_) { return null; }
+  }
+  async function saveSub(sub) {
+    const j = sub.toJSON();
+    const { error } = await sb.from("push_subscriptions").upsert({ endpoint: j.endpoint, p256dh: j.keys.p256dh, auth: j.keys.auth, who: pushWho, tz: deviceTz, updated_at: new Date().toISOString() });
+    if (error) throw error;
+  }
+  async function refreshPush() {
+    if (!pushSupported) pushState = "unsupported";
+    else if (!VAPID) pushState = "unset";
+    else if (Notification.permission === "denied") pushState = "denied";
+    else pushState = Notification.permission === "granted" && await getSub() ? "on" : "off";
+    $("notifBtn").classList.toggle("on", pushState === "on");
+    $("notifBtn").setAttribute("aria-label", pushState === "on" ? "Reminders: on" : "Reminders: off");
+  }
+  const sameKey = sub => { try { const k = new Uint8Array(sub.options.applicationServerKey), w = b64ToBytes(VAPID); return k.length === w.length && k.every((x, i) => x === w[i]); } catch (_) { return true; } };
+  async function pushOn() {
+    const perm = await Notification.requestPermission(); // first thing in the tap: iPhone only asks from a tap
+    if (perm !== "granted") { await refreshPush(); throw new Error(perm === "denied" ? "" : "Notifications weren't allowed. Tap Turn on to try again."); }
+    const reg = await navigator.serviceWorker.register("/sw.js");
+    await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if (sub && !sameKey(sub)) { await sub.unsubscribe(); sub = null; } // the keys were changed since
+    if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToBytes(VAPID) });
+    await saveSub(sub);
+    await refreshPush();
+  }
+  async function pushOff() {
+    const sub = await getSub();
+    if (sub) { await sb.from("push_subscriptions").delete().eq("endpoint", sub.endpoint); await sub.unsubscribe(); }
+    await refreshPush();
+  }
+  function drawNotifSheet(msg, ok) {
+    const st = pushState;
+    $("notifMsg").textContent = msg || {
+      unsupported: isIOS && !standalone
+        ? "On iPhone, reminders work in the Home Screen app. In Safari tap Share → Add to Home Screen, open Our Week from that icon, then come back here."
+        : "This browser can't show notifications from websites.",
+      unset: "Reminders aren't connected yet: add vapidPublicKey to config.js (see the README).",
+      denied: "Notifications are blocked for this site. Allow them in this device's settings (on iPhone: Settings → Notifications → Our Week), then come back here.",
+      off: "Get a notification when something with a start time begins, plus any earlier reminders you pick on the item (15 min, 1 hour, 1 day…).",
+      on: "On for this device. Pick extra reminders when you add or edit something with a start time.",
+    }[st];
+    $("notifMsg").classList.toggle("ok", !!ok);
+    $("notifOn").hidden = st !== "off";
+    $("notifOff").hidden = $("notifTest").hidden = st !== "on";
+    $("notifWhoBox").hidden = st !== "on" && st !== "off";
+    seg($("notifWho"), [["all", "Everything"], ["a", `${S.names.a} + Both`], ["b", `${S.names.b} + Both`]], pushWho, async v => {
+      pushWho = v; store.set("our-week-notify-who", v); drawNotifSheet();
+      if (pushState === "on") { const sub = await getSub(); if (sub) saveSub(sub).catch(() => { $("notifErr").textContent = "Couldn't save that. Check your connection."; }); }
+    });
+  }
+  async function notifBusy(btn, label, work) {
+    $("notifErr").textContent = "";
+    const old = btn.textContent; btn.disabled = true; btn.textContent = label;
+    try { await work(); } catch (e) { if (!e || e.message !== "") $("notifErr").textContent = e && e.message ? e.message : "Something went wrong. Check your connection and try again."; }
+    btn.disabled = false; btn.textContent = old;
+  }
+  $("notifBtn").onclick = async () => { $("notifErr").textContent = ""; await refreshPush(); drawNotifSheet(); $("notif").hidden = false; };
+  $("notifClose").onclick = () => { $("notif").hidden = true; };
+  $("notif").addEventListener("pointerdown", e => { if (e.target === $("notif")) $("notif").hidden = true; });
+  $("notifOn").onclick = () => notifBusy($("notifOn"), "Turning on…", async () => {
+    try { await pushOn(); } catch (e) { drawNotifSheet(); throw e; }
+    drawNotifSheet("Reminders are on for this device.", true);
+  });
+  $("notifOff").onclick = () => notifBusy($("notifOff"), "Turning off…", async () => { await pushOff(); drawNotifSheet(); });
+  $("notifTest").onclick = () => notifBusy($("notifTest"), "Sending…", async () => {
+    const sub = await getSub(); if (!sub) throw new Error("Turn reminders on first.");
+    await saveSub(sub);
+    const { data, error } = await sb.functions.invoke("send-reminders", { body: { test: true, endpoint: sub.endpoint } });
+    if (error) throw new Error("The reminder service didn't answer. Check that the send-reminders function is deployed (see the README).");
+    if (data && data.error) throw new Error(data.error);
+    drawNotifSheet("Test sent. It should arrive in a few seconds.", true);
+  });
+  async function initPush() {
+    if (!pushSupported) { await refreshPush(); return; }
+    navigator.serviceWorker.addEventListener("message", e => {
+      const d = e.data || {};
+      if (d.type === "open-day" && /^\d{4}-\d{2}-\d{2}$/.test(d.day)) setView("day", d.day);
+    });
+    try { await navigator.serviceWorker.register("/sw.js"); } catch (_) {}
+    await refreshPush();
+    // keep this device's entry fresh (time zone, choice of whose items) every time the app opens
+    if (pushState === "on") { const sub = await getSub(); if (sub) saveSub(sub).catch(() => {}); }
+  }
 
   (async () => {
     if (!configured) { showGate("This copy isn't connected to a database yet. Fill in <code>config.js</code> with your Supabase details."); $("gatePw").disabled = $("gateBtn").disabled = true; return; }

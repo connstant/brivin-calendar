@@ -6,4 +6,7 @@ window.OUR_WEEK_CONFIG = {
   // The planner's login name. Must match the user in Supabase > Authentication and the email in
   // supabase/setup.sql (planner_members).
   loginEmail: "plan@brivin.com",
+  // Reminders (Web Push): the PUBLIC half of your VAPID key pair. Make the pair with
+  // `npx web-push generate-vapid-keys`; the private half goes in Supabase, never here. See the README.
+  vapidPublicKey: "BERXsMF2UktiH4862-2Kr9tFlXprs8-InAj_iWajXOePK_y2Lal97CGuge6NkPmdj70JeUkOTlnaiYVxRkKa-S4",
 };
