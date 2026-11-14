@@ -74,6 +74,7 @@ async function sendTest(req: Request, db: SupabaseClient, endpoint: unknown) {
   const email = u?.user?.email?.toLowerCase();
   if (!email) return json({ error: "Your sign-in expired. Reload the page, then try again." });
   const member = await db.from("planner_members").select("email").eq("email", email).maybeSingle();
+  if (member.error) return json({ error: `The reminder function can't read the database (${member.error.message}). Rerun supabase/setup.sql.` });
   if (!member.data) return json({ error: "This login isn't allowed to use the planner." });
   if (typeof endpoint !== "string") return json({ error: "No device given." });
   const s = await db.from("push_subscriptions").select("endpoint,p256dh,auth,who,tz").eq("endpoint", endpoint).maybeSingle();
