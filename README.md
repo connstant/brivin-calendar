@@ -1,7 +1,7 @@
 # Our Week
 
-A shared weekly planner for two: plans, chores, dinners, PTO, trips, repeating events
-and a four-list shopping list. One shared password; each device stays signed in.
+A shared weekly planner for two: plans, dinners, PTO, trips, repeating events,
+to-do lists (General plus one each) and a four-list shopping list. One shared password; each device stays signed in.
 
 - **Front end:** static files in `public/`, hosted on Vercel.
 - **Data + login:** Supabase (Postgres, live updates, password login).
@@ -53,6 +53,9 @@ If the test says the service didn't answer, check the function's **Logs** in Sup
 - **Week and Day views** show a timeline in 30-minute steps. Things with a start time sit on it; drag one to
   move it, or drag its bottom edge to change when it ends. Multi-day items, PTO and trips are in **All day**
   at the top; things without a time are in **Anytime** below. Click or drag on the timeline to add at a time.
+- **To-do lists:** General plus one per person. Ticked items sink to the bottom; *Remove completed* clears them.
+- **On a phone** the page splits into three tabs at the bottom: **To-Do** (opens first), **Calendar** and **Shopping**.
+  Wider screens show everything on one page.
 - **Sign out** (top right) → *Sign out all devices* if a phone is lost.
 - To change the password: Supabase → Authentication → Users → the planner login →
   ⋯ → change password, then use *Sign out all devices*. (The login has no real inbox, so
