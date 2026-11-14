@@ -76,6 +76,11 @@ alter table public.reminder_secret enable row level security;
 revoke all on public.reminder_secret from anon, authenticated;
 insert into public.reminder_secret (id) values (1) on conflict do nothing;
 
+-- The reminder function signs in as service_role. Newer Supabase projects don't give that role
+-- access to tables made here unless we say so.
+grant select on public.planner_members, public.docs, public.reminder_secret to service_role;
+grant select, insert, update, delete on public.push_subscriptions, public.notify_sent to service_role;
+
 -- 5) Quick check: should list the table and your login.
 select (select count(*) from public.docs) as planner_rows,
        (select string_agg(email, ', ') from public.planner_members) as allowed_login;
