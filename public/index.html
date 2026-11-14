@@ -33,8 +33,12 @@
   --dinner-bg: #fbf4ea;
   --dinner-ink: #8a4b14;
   --dinner-bar: #f3dcc0;
-  --pto-bar: #cdeccf;     /* PTO: light green */
+  --plan-bar: #d4e4fb;    /* items are colored by type: plans pastel blue */
+  --plan-edge: #3f7fdc;
+  --chore-bar: #cdeccf;   /* chores pastel green */
+  --chore-edge: #3a9a55;
   --away-bar: #f8cfcf;    /* Out of town: light red */
+  --away-edge: #d55a5a;
   --a: #2f6fd6;      /* person A */
   --b: #d64f7c;      /* person B */
   --both: #6c55c9;   /* together */
@@ -47,13 +51,13 @@
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
   --bg: #12151c; --surface: #1a1f29; --ink: #e8ebf2; --muted: #98a1b3; --line: #2a3140;
   --today: #2a2717; --out: #161a22; --dinner-bg: #1f1b16; --dinner-ink: #f0bf86; --dinner-bar: #4a3520;
-  --pto-bar: #23452a; --away-bar: #552a2c;
+  --plan-bar: #22385c; --plan-edge: #6d9df0; --chore-bar: #23452a; --chore-edge: #5cc27a; --away-bar: #552a2c; --away-edge: #e07a7a;
   --a: #5b8ff0; --b: #ec6f98; --both: #8f7ae6; --sel: rgba(91,143,240,.2); --on-color: #0e1118;
   --shadow: 0 1px 2px rgba(0,0,0,.4); color-scheme: dark; } }
 :root[data-theme="dark"] {
   --bg: #12151c; --surface: #1a1f29; --ink: #e8ebf2; --muted: #98a1b3; --line: #2a3140;
   --today: #2a2717; --out: #161a22; --dinner-bg: #1f1b16; --dinner-ink: #f0bf86; --dinner-bar: #4a3520;
-  --pto-bar: #23452a; --away-bar: #552a2c;
+  --plan-bar: #22385c; --plan-edge: #6d9df0; --chore-bar: #23452a; --chore-edge: #5cc27a; --away-bar: #552a2c; --away-edge: #e07a7a;
   --a: #5b8ff0; --b: #ec6f98; --both: #8f7ae6; --sel: rgba(91,143,240,.2); --on-color: #0e1118;
   --shadow: 0 1px 2px rgba(0,0,0,.4); color-scheme: dark; }
 :root[data-theme="light"] { color-scheme: light; }
@@ -138,15 +142,19 @@ button.day:hover .dd { background: var(--line); }
 .items { position: absolute; inset: 0; pointer-events: none; }
 
 .bar { position: absolute; height: var(--bh, 30px); pointer-events: auto; border-radius: 7px; padding: 0 10px; display: flex; align-items: center; gap: 7px;
-  font-weight: 600; font-size: 13px; cursor: grab; touch-action: none; overflow: hidden; white-space: nowrap;
-  background: var(--c); color: var(--on-color); border: 1.5px solid var(--c); transition: box-shadow .12s; }
+  font-weight: 600; font-size: 13px; cursor: grab; touch-action: pan-x pan-y; -webkit-touch-callout: none; overflow: hidden; white-space: nowrap;
+  background: var(--kb); color: var(--ink); border: 1.5px solid var(--kb); transition: box-shadow .12s; }
+/* type colors (the small dot on each item still shows whose it is) */
+.bar.plan, .ev.plan, .card.plan { --kb: var(--plan-bar); --ke: var(--plan-edge); }
+.bar.chore, .ev.chore, .card.chore { --kb: var(--chore-bar); --ke: var(--chore-edge); }
+.bar.away, .ev.away, .card.away { --kb: var(--away-bar); --ke: var(--away-edge); }
+.bar.dinner, .ev.dinner, .card.dinner { --kb: var(--dinner-bar); --ke: var(--dinner-ink); }
 .bar.sm { font-size: 12px; padding: 0 7px; gap: 5px; }
 .bar:hover { box-shadow: 0 2px 8px rgba(0,0,0,.18); }
 .bar.dragging { cursor: grabbing; opacity: .85; box-shadow: 0 4px 14px rgba(0,0,0,.25); z-index: 5; }
 .bar .t { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .bar .tm { font-weight: 500; opacity: .85; font-variant-numeric: tabular-nums; flex: none; }
 .bar .ex { font-size: 10px; text-transform: uppercase; letter-spacing: .06em; font-weight: 700; opacity: .7; flex: none; margin-left: auto; }
-.bar.chore { background: var(--surface); color: var(--ink); }
 .chk { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--c); flex: none; display: grid; place-items: center; padding: 0; background: transparent; cursor: pointer; }
 .done .chk { background: var(--c); }
 .done .chk::after { content: ""; width: 4px; height: 8px; border: solid var(--surface); border-width: 0 2px 2px 0; transform: translateY(-1px) rotate(45deg); }
@@ -154,7 +162,6 @@ button.day:hover .dd { background: var(--line); }
 .bar.sm.done .chk::after { width: 3px; height: 6px; }
 .done .t { text-decoration: line-through; opacity: .55; }
 .bar.dinner { background: var(--dinner-bar); border-color: var(--dinner-bar); color: var(--ink); }
-.bar.pto { background: var(--pto-bar); border-color: var(--pto-bar); color: var(--ink); }
 .bar.away { background: var(--away-bar); border-color: var(--away-bar); color: var(--ink); }
 .cook { width: 8px; height: 8px; border-radius: 50%; background: var(--c); flex: none; }
 .bar.cut-l { border-top-left-radius: 0; border-bottom-left-radius: 0; }
@@ -175,9 +182,8 @@ button.day:hover .dd { background: var(--line); }
 .dv-col h2 .btn { font-size: 13px; padding: 5px 10px; font-family: var(--font-body); }
 .card { display: flex; gap: 10px; align-items: flex-start; padding: 11px 12px; border-radius: 10px; background: var(--bg); border: 1px solid var(--line); cursor: pointer; text-align: left; width: 100%; }
 .card:hover { border-color: var(--muted); }
-.card.plan { background: color-mix(in srgb, var(--c) 12%, var(--surface)); border-color: color-mix(in srgb, var(--c) 35%, var(--line)); }
+.card.plan, .card.chore { background: var(--kb); border-color: var(--kb); }
 .card.dinner { background: var(--surface); }
-.card.pto { background: var(--pto-bar); border-color: var(--pto-bar); }
 .card.away { background: var(--away-bar); border-color: var(--away-bar); }
 .card .sw { width: 12px; height: 12px; border-radius: 4px; background: var(--c); flex: none; margin-top: 3px; }
 .card .chk { margin-top: 1px; }
@@ -285,6 +291,13 @@ button.day:hover .dd { background: var(--line); }
   padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
 .sheet { background: var(--surface); color: var(--ink); border-radius: 14px; width: min(440px, 100%); max-height: 100%; overflow: auto; padding: 18px 18px 16px; box-shadow: 0 20px 60px rgba(0,0,0,.3); }
 .sheet h3 { font-family: var(--font-display); margin: 0 0 14px; font-size: 19px; }
+.donebtn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; margin: -4px 0 14px; padding: 12px 14px; border-radius: 10px;
+  border: 2px solid var(--chore-edge); background: var(--chore-edge); color: #fff; font-weight: 700; font-size: 15px; }
+.donebtn.is-done { background: var(--chore-bar); color: var(--ink); }
+.todo .si-chk .when { margin-left: auto; flex: none; font-size: 12px; color: var(--muted); padding-left: 6px; display: inline-flex; align-items: center; gap: 4px; }
+.todo .si-chk .when svg { width: 12px; height: 12px; }
+.todo .si-chk .when.late { color: var(--b); font-weight: 600; }
+.todo .si-del-sp { width: 30px; flex: none; }
 .f { display: grid; gap: 5px; margin-bottom: 12px; }
 .f label, .lbl { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
 .f input, .f textarea { font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 9px 10px; width: 100%; }
@@ -359,7 +372,8 @@ button.day:hover .dd { background: var(--line); }
 .tl-hr { position: absolute; left: calc(-1 * var(--gut)); width: calc(var(--gut) - 6px); text-align: right; font-size: 10.5px; color: var(--muted); transform: translateY(-50%); font-variant-numeric: tabular-nums; white-space: nowrap; pointer-events: none; }
 .tl-items { position: absolute; inset: 0; pointer-events: none; }
 .ev { position: absolute; pointer-events: auto; border-radius: 5px; padding: 1px 5px 1px 6px; font-size: 11.5px; line-height: 1.25; overflow: hidden; display: flex; flex-direction: column;
-  background: color-mix(in srgb, var(--c) 20%, var(--surface)); border-left: 3px solid var(--c); color: var(--ink); cursor: grab; touch-action: none; transition: box-shadow .12s; }
+  background: var(--kb); border-left: 3px solid var(--ke); color: var(--ink); cursor: grab; touch-action: pan-x pan-y; -webkit-touch-callout: none; transition: box-shadow .12s; }
+.ev .cook { width: 7px; height: 7px; }
 .ev:hover { box-shadow: 0 2px 8px rgba(0,0,0,.15); z-index: 2; }
 .ev.short { flex-direction: row; align-items: center; gap: 5px; }
 .ev .ln { display: flex; align-items: center; gap: 4px; min-width: 0; }
@@ -552,7 +566,8 @@ button.day:hover .dd { background: var(--line); }
     </div>
     <div id="formBody">
     <h3 id="edTitle">New item</h3>
-    <div class="f"><label for="fTitle">What</label><input id="fTitle" required maxlength="80" placeholder="Date night, dentist, tacos…"></div>
+    <button type="button" class="donebtn" id="doneBtn" hidden></button>
+    <div class="f"><label for="fTitle">What</label><input id="fTitle" required maxlength="80" placeholder="Date night, vacuum, tacos…"></div>
     <div class="f"><span class="lbl">Type</span><div class="seg" id="fKind"></div></div>
     <div class="f"><span class="lbl" id="whoLbl">Who</span><div class="seg" id="fWho"></div></div>
     <div class="row2">
@@ -651,7 +666,7 @@ button.day:hover .dd { background: var(--line); }
   const uid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
 
   function loadLocal() {
-    try { const j = JSON.parse(localStorage.getItem(LS_KEY) || "null"); if (j) { S.names = j.names || S.names; S.items = new Map((j.items || []).map(i => [i.id, i])); splitShopping(j.shopping || []); } } catch (e) {}
+    try { const j = JSON.parse(localStorage.getItem(LS_KEY) || "null"); if (j) { S.names = j.names || S.names; S.items = new Map((j.items || []).map(i => [i.id, { ...i, kind: i.kind === "pto" ? "plan" : i.kind }])); splitShopping(j.shopping || []); } } catch (e) {}
   }
   function saveLocal() { store.set(LS_KEY, JSON.stringify({ names: S.names, items: [...S.items.values()], shopping: [...S.shop.values(), ...S.todo.values()] })); }
   const TODO_LISTS = ["general", "a", "b"];
@@ -663,7 +678,8 @@ button.day:hover .dd { background: var(--line); }
   function clean(it) {
     const o = { title: it.title, kind: it.kind, who: it.who, start: it.start, end: it.end, time: it.time || "", tStart: it.tStart || "", tEnd: it.tEnd || "", notes: it.notes || "", done: !!it.done, updated: Date.now() };
     if (it.example) o.example = true;
-    if (it.repeat) { o.repeat = { days: it.repeat.days, every: it.repeat.every || 1, until: it.repeat.until || "" }; o.exceptions = it.exceptions || {}; o.doneDates = it.doneDates || {}; }
+    if (it.repeat) { o.repeat = { days: it.repeat.days, every: it.repeat.every || 1, until: it.repeat.until || "" }; o.exceptions = it.exceptions || {}; o.doneDates = it.doneDates || {}; o.clearedDates = it.clearedDates || {}; }
+    else { if (it.done && it.doneAt) o.doneAt = it.doneAt; if (it.cleared) o.cleared = true; } // chores: when ticked, and whether it was cleared off the To-Do page
     if (it.group) o.group = it.group;
     if (typeof it.rank === "number") o.rank = it.rank;
     // notifications: on unless turned off; extra reminders in minutes before the start; the time zone the times are in
@@ -676,7 +692,8 @@ button.day:hover .dd { background: var(--line); }
   // Each date it lands on becomes a virtual occurrence with id "<seriesId>@<date>".
   function occurrenceOf(s, d) {
     const len = diff(s.start, s.end);
-    return { ...s, id: s.id + "@" + d, seriesId: s.id, occ: d, start: d, end: addDays(d, len), done: !!(s.doneDates && s.doneDates[d]) };
+    const dd = s.doneDates && s.doneDates[d];
+    return { ...s, id: s.id + "@" + d, seriesId: s.id, occ: d, start: d, end: addDays(d, len), done: !!dd, doneAt: typeof dd === "number" ? dd : 0, cleared: !!(s.clearedDates && s.clearedDates[d]) };
   }
   function seriesHits(s, d) {
     const r = s.repeat;
@@ -735,6 +752,8 @@ button.day:hover .dd { background: var(--line); }
   const $ = id => document.getElementById(id);
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const color = who => who === "a" ? "var(--a)" : who === "b" ? "var(--b)" : "var(--both)";
+  const isDone = it => it.kind === "chore" && !!it.done;
+  const KIND_EDGE = { plan: "var(--plan-edge)", chore: "var(--chore-edge)", away: "var(--away-edge)", dinner: "var(--dinner-ink)" };
   const whoName = who => who === "a" ? S.names.a : who === "b" ? S.names.b : "Both";
   const itemNow = it => (drag && drag.preview && drag.id === it.id) ? { ...it, ...drag.preview }
     : (tdrag && tdrag.preview && tdrag.id === it.id) ? { ...it, ...tdrag.preview } : it;
@@ -790,7 +809,7 @@ button.day:hover .dd { background: var(--line); }
   // (and dinners last in Month view). Every item has a rank; dragging up or down changes it.
   // Items nobody has moved get a default rank from their type, start time and length.
   const GROUP_OF = { pto: 0, away: 0, plan: 1, chore: 1, dinner: 2 };
-  const isThin = k => k === "pto" || k === "away";
+  const isThin = k => k === "away";
   function effRank(it) {
     if (typeof it.rank === "number") return it.rank;
     const base = { pto: 0, away: 0, plan: 1e7, chore: 2e7, dinner: 3e7 }[it.kind] ?? 1e7;
@@ -819,10 +838,8 @@ button.day:hover .dd { background: var(--line); }
     el.style.height = (Math.max(cfg.top + cfg.minLanes * step, y + (cfg.spare ? step : 0)) + 6) + "px";
     el.querySelector(".items").innerHTML = layout.map(({ it, c0, c1, g, h, y }) => {
       const cl = it.start < cfg.start, cr = it.end > cfg.end, k = it.kind, thin = g === 0;
-      const pre = k === "chore" ? `<button type="button" class="chk" data-act="toggle" aria-label="${it.done ? "Mark not done" : "Mark done"}"></button>`
-        : k === "dinner" ? `<span class="cook" title="${esc(whoName(it.who))} cooks"></span>`
-        : thin ? `<span class="cook" title="${esc(whoName(it.who))}"></span>` : "";
-      return `<div class="bar ${k}${thin ? " thin" : ""}${cfg.small ? " sm" : ""}${cfg.tall && !thin ? " tall" : ""}${it.done ? " done" : ""}${cl ? " cut-l" : ""}${cr ? " cut-r" : ""}${drag && drag.id === it.id ? " dragging" : ""}"
+      const pre = `<span class="cook" title="${esc(whoName(it.who))}${k === "dinner" ? " cooks" : ""}"></span>`;
+      return `<div class="bar ${k}${thin ? " thin" : ""}${cfg.small ? " sm" : ""}${cfg.tall && !thin ? " tall" : ""}${isDone(it) ? " done" : ""}${cl ? " cut-l" : ""}${cr ? " cut-r" : ""}${drag && drag.id === it.id ? " dragging" : ""}"
         data-id="${esc(it.id)}" tabindex="0" role="button" aria-label="${esc(it.title)}, ${esc(whoName(it.who))}" title="${esc(it.title)}${timeLabel(it) ? " · " + esc(timeLabel(it)) : ""}"
         style="--c:${color(it.who)};--bh:${h}px;left:calc(${(c0 / 7) * 100}% + 3px);width:calc(${((c1 - c0 + 1) / 7) * 100}% - 6px);top:${y}px">
         ${pre}<span class="t">${esc(it.title)}</span>${it.seriesId ? `<span class="rep" title="Repeats" aria-label="Repeats">↻</span>` : ""}
@@ -871,8 +888,8 @@ button.day:hover .dd { background: var(--line); }
     });
     let html = out.map(({ it, s, e, col, lane, k }) => {
       const top = Math.max(0, y(s)) + 1, h = Math.max(SLOT - 2, y(e) - y(s) - 2), w = 100 / n / k;
-      const pre = it.kind === "chore" ? `<button type="button" class="chk" data-act="toggle" aria-label="${it.done ? "Mark not done" : "Mark done"}"></button>` : "";
-      return `<div class="ev ${it.kind}${it.done ? " done" : ""}${h < 3 * SLOT - 2 ? " short" : ""}${tdrag && tdrag.id === it.id ? " dragging" : ""}" data-id="${esc(it.id)}" tabindex="0" role="button"
+      const pre = `<span class="cook"></span>`;
+      return `<div class="ev ${it.kind}${isDone(it) ? " done" : ""}${h < 3 * SLOT - 2 ? " short" : ""}${tdrag && tdrag.id === it.id ? " dragging" : ""}" data-id="${esc(it.id)}" tabindex="0" role="button"
         aria-label="${esc(it.title)}, ${esc(timeLabel(it))}, ${esc(whoName(it.who))}" title="${esc(it.title)} · ${esc(timeLabel(it))}"
         style="--c:${color(it.who)};top:${top}px;height:${h}px;left:calc(${col * 100 / n + lane * w}% + 2px);width:calc(${w}% - 4px)">
         <span class="ln">${pre}<span class="t">${esc(it.title)}</span>${it.seriesId ? `<span class="rep" aria-label="Repeats">↻</span>` : ""}</span><span class="tm">${esc(timeLabel(it))}</span><span class="rs" data-act="rs"></span></div>`;
@@ -919,10 +936,9 @@ button.day:hover .dd { background: var(--line); }
   }
   function card(it, slim) {
     const k = it.kind, span = it.start !== it.end ? `${fmtSpan(it.start, it.end)} · day ${diff(it.start, S.cursor) + 1} of ${diff(it.start, it.end) + 1}` : "";
-    const meta = [timeLabel(it), k === "dinner" ? (it.who === "both" ? "Cooking together" : `${whoName(it.who)} cooks`) : whoName(it.who), k === "chore" ? "Chore" : k === "pto" ? "PTO" : k === "away" ? "Out of town" : "", it.seriesId ? repeatText(it.repeat) : "", span, it.example ? "Example" : ""].filter(Boolean).map(esc).join(" · ");
-    const pre = k === "chore" ? `<button type="button" class="chk" data-act="toggle" aria-label="${it.done ? "Mark not done" : "Mark done"}"></button>`
-      : (k === "dinner" || k === "pto" || k === "away") ? `<span class="cook"></span>` : `<span class="sw"></span>`;
-    return `<div class="card ${k}${slim ? " slim" : ""}${it.done ? " done" : ""}" data-id="${esc(it.id)}" data-act="open" tabindex="0" role="button" style="--c:${color(it.who)}">${pre}
+    const meta = [timeLabel(it), k === "dinner" ? (it.who === "both" ? "Cooking together" : `${whoName(it.who)} cooks`) : whoName(it.who), k === "chore" ? (it.done ? "Chore · done" : "Chore") : k === "away" ? "Out of town" : "", it.seriesId ? repeatText(it.repeat) : "", span, it.example ? "Example" : ""].filter(Boolean).map(esc).join(" · ");
+    const pre = (k === "dinner" || k === "away") ? `<span class="cook"></span>` : `<span class="sw"></span>`;
+    return `<div class="card ${k}${slim ? " slim" : ""}${isDone(it) ? " done" : ""}" data-id="${esc(it.id)}" data-act="open" tabindex="0" role="button" style="--c:${color(it.who)}">${pre}
       <div class="body"><div class="t">${esc(it.title)}</div><div class="meta">${meta}</div>${it.notes ? `<div class="notes">${esc(it.notes)}</div>` : ""}</div></div>`;
   }
   function renderDay() {
@@ -931,7 +947,7 @@ button.day:hover .dd { background: var(--line); }
     const list = inRange(d, d).sort(byRank);
     const allDay = list.filter(isAllDay), any = list.filter(isAnytime), din = list.filter(i => i.kind === "dinner");
     $("view").innerHTML = `<div class="dayview">
-      <section class="dv-col"><h2>Plans <button type="button" class="btn" data-act="add" data-kind="plan">+ Add</button></h2>
+      <section class="dv-col"><h2>Plans &amp; chores <button type="button" class="btn" data-act="add" data-kind="plan">+ Add</button></h2>
         ${allDay.length ? `<div class="dv-sub">All day</div>${allDay.map(it => card(it, true)).join("")}` : ""}
         ${timelineHTML([d], false)}
         <div class="dv-sub">Anytime</div>
@@ -939,7 +955,7 @@ button.day:hover .dd { background: var(--line); }
       <section class="dv-col dinner"><h2>Dinner <button type="button" class="btn" data-act="add" data-kind="dinner">+ Add</button></h2>
         ${din.length ? din.map(it => card(it)).join("") : `<div class="dv-empty">No dinner planned yet.</div>`}</section></div>`;
     renderTimelineItems();
-    $("foot").textContent = "Tap the timeline to add something at that time. Drag an item to move it, or its bottom edge to change when it ends. Click an item to edit it.";
+    $("foot").textContent = "Tap the timeline to add something at that time. Drag an item to move it, or its bottom edge to change when it ends. Click an item to edit it, or to mark a chore done.";
   }
   function renderYear() {
     const y = +S.cursor.slice(0, 4), t = todayISO();
@@ -957,13 +973,13 @@ button.day:hover .dd { background: var(--line); }
       html += `<div></div>`.repeat(lead);
       for (let d = ms; d <= me; d = addDays(d, 1)) {
         const its = byDay.get(d) || [];
-        const whos = [...new Set(its.map(i => i.who))].slice(0, 3);
-        html += `<button type="button" class="md${d === t ? " today" : ""}${its.length ? " busy" : ""}" data-act="day" data-date="${d}" aria-label="${fmt(d)}${its.length ? `, ${its.length} item${its.length > 1 ? "s" : ""}` : ""}"><span>${parse(d).getDate()}</span><span class="ds">${whos.map(w => `<i style="--c:${color(w)}"></i>`).join("")}</span></button>`;
+        const kinds = [...new Set(its.map(i => i.kind))].slice(0, 3);
+        html += `<button type="button" class="md${d === t ? " today" : ""}${its.length ? " busy" : ""}" data-act="day" data-date="${d}" aria-label="${fmt(d)}${its.length ? `, ${its.length} item${its.length > 1 ? "s" : ""}` : ""}"><span>${parse(d).getDate()}</span><span class="ds">${kinds.map(k => `<i style="--c:${KIND_EDGE[k] || "var(--plan-edge)"}"></i>`).join("")}</span></button>`;
       }
       html += `</div></div>`;
     }
     $("view").innerHTML = html + `</div>`;
-    $("foot").textContent = "Dots show who has something on that day. Click a day to open it, or a month name to see the whole month.";
+    $("foot").textContent = "Dots show what's on that day: blue plans, green chores, red trips, orange dinners. Click a day to open it, or a month name to see the whole month.";
   }
 
   function renderHeader() {
@@ -987,7 +1003,7 @@ button.day:hover .dd { background: var(--line); }
       if (it.kind === "plan") plans++;
       else if (it.kind === "dinner") for (let d = it.start < a ? a : it.start; d <= it.end && d <= b; d = addDays(d, 1)) dinners.add(d);
     }
-    const days = diff(a, b) + 1, todosLeft = [...S.todo.values()].filter(i => !i.done).length;
+    const days = diff(a, b) + 1, todosLeft = todoRows().filter(i => !i.done).length;
     $("summary").innerHTML = `<span><b>${plans}</b> plan${plans === 1 ? "" : "s"}</span><span><b>${dinners.size}/${days}</b> dinner${days === 1 ? "" : "s"} planned</span><span><b>${todosLeft}</b> to-do${todosLeft === 1 ? "" : "s"} left</span>`;
   }
   function renderStatus() {
@@ -1148,6 +1164,53 @@ button.day:hover .dd { background: var(--line); }
   });
 
   // ---------- to-do lists: General plus one per person; finished ones sink to the bottom ----------
+  // Calendar chores show up here too (Both -> General, otherwise that person's list). They're read from
+  // the calendar item itself, so ticking one here or in the calendar editor is the same tick.
+  function setChoreDone(it, on) {
+    if (it.seriesId) {
+      const s = S.items.get(it.seriesId); if (!s) return;
+      const dd = { ...(s.doneDates || {}) }, cd = { ...(s.clearedDates || {}) };
+      if (on) dd[it.occ] = Date.now(); else delete dd[it.occ];
+      delete cd[it.occ];
+      persist({ ...s, doneDates: dd, clearedDates: cd });
+    } else {
+      const b = S.items.get(it.id); if (!b) return;
+      persist({ ...b, done: on, doneAt: on ? Date.now() : 0, cleared: false });
+    }
+  }
+  // Which chores are listed: a one-off chore until it's done (then until cleared, for two weeks).
+  // A repeating chore shows its current or next time (within a week), the latest missed one if it
+  // wasn't done, and any ticked ones from the last two weeks until they're cleared.
+  function choreTodos() {
+    const t = todayISO(), a = addDays(t, -13), b = addDays(t, 6), out = [];
+    for (const base of S.items.values()) {
+      if (base.kind !== "chore" || base.example) continue;
+      if (base.repeat) {
+        const all = expand(base, a, b).filter(o => o.start <= b && o.end >= a);
+        const last = all.filter(o => o.end < t).pop(); // only the latest past time can show as missed
+        if (last && !last.done && !last.cleared) out.push(last);
+        const occ = all.filter(o => !o.cleared), past = occ.filter(o => o.end < t), now = occ.filter(o => o.end >= t);
+        out.push(...past.filter(o => o.done));
+        const next = now.find(o => !o.done);
+        out.push(...now.filter(o => o.done || o === next));
+      }
+      else if (!base.cleared && base.start <= b && (!base.done || base.end >= a)) out.push(base);
+    }
+    return out;
+  }
+  const choreList = c => c.who === "a" ? "a" : c.who === "b" ? "b" : "general";
+  function todoRows() {
+    const rows = [...S.todo.values()].map(i => ({ id: i.id, list: i.list.slice(5), text: i.text, done: !!i.done, doneAt: i.doneAt || 0, ord: ordOf(i) }));
+    for (const c of choreTodos()) rows.push({ id: c.id, list: choreList(c), text: c.title, done: !!c.done, doneAt: c.doneAt || 0, chore: c });
+    return rows;
+  }
+  function whenLabel(c) {
+    const t = todayISO();
+    if (!c.done && c.end < t) return { txt: "Overdue · " + fmt(c.start), late: true };
+    const d = c.start <= t && c.end >= t ? t : c.start;
+    return { txt: d === t ? "Today" : d === addDays(t, 1) ? "Tomorrow" : d === addDays(t, -1) ? "Yesterday" : `${DOW[parse(d).getDay()]} ${fmt(d)}` };
+  }
+  const calSvg = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/></svg>`;
   let todoClearArmed = false, todoClearTimer = 0;
   function renderTodo() {
     for (const k of ["a", "b"]) {
@@ -1156,18 +1219,24 @@ button.day:hover .dd { background: var(--line); }
       $("todoIn-" + k).setAttribute("aria-label", `Add to ${n}'s list`);
       $("todoBtn-" + k).setAttribute("aria-label", `Add to ${n}'s list`);
     }
-    const all = [...S.todo.values()];
+    const all = todoRows();
     const left = all.filter(i => !i.done).length, doneN = all.length - left;
     $("todoCount").textContent = all.length ? `${left} of ${all.length} left` : "";
     $("todoClear").hidden = !doneN;
     if (!todoClearArmed) $("todoClear").textContent = `Remove completed (${doneN})`;
     for (const L of TODO_LISTS) {
-      const mine = all.filter(i => i.list === "todo-" + L);
-      const open = mine.filter(i => !i.done).sort((a, b) => ordOf(a) - ordOf(b));
-      const done = mine.filter(i => i.done).sort((a, b) => (a.doneAt || 0) - (b.doneAt || 0));
+      const mine = all.filter(i => i.list === L);
+      // calendar chores first (by date), then your own to-dos in the order added; ticked ones at the bottom
+      const open = mine.filter(i => !i.done).sort((a, b) => (!!b.chore - !!a.chore) || (a.chore ? a.chore.start.localeCompare(b.chore.start) || a.text.localeCompare(b.text) : a.ord - b.ord));
+      const done = mine.filter(i => i.done).sort((a, b) => a.doneAt - b.doneAt);
       $("todoN-" + L).textContent = mine.length ? `${open.length} left` : "";
-      $("todoList-" + L).innerHTML = mine.length ? [...open, ...done].map(i =>
-        `<li class="si${i.done ? " done" : ""}"><button type="button" class="si-chk" data-tid="${esc(i.id)}" role="checkbox" aria-checked="${!!i.done}"><span class="box"></span><span class="txt">${esc(i.text)}</span></button><button type="button" class="si-del" data-tdel="${esc(i.id)}" aria-label="Remove ${esc(i.text)}">×</button></li>`).join("")
+      $("todoList-" + L).innerHTML = mine.length ? [...open, ...done].map(i => {
+        if (i.chore) {
+          const w = whenLabel(i.chore);
+          return `<li class="si${i.done ? " done" : ""}"><button type="button" class="si-chk" data-cid="${esc(i.id)}" role="checkbox" aria-checked="${i.done}" aria-label="${esc(i.text)}, calendar chore, ${esc(w.txt)}"><span class="box"></span><span class="txt">${esc(i.text)}</span><span class="when${w.late ? " late" : ""}">${calSvg}${esc(w.txt)}</span></button><span class="si-del-sp"></span></li>`;
+        }
+        return `<li class="si${i.done ? " done" : ""}"><button type="button" class="si-chk" data-tid="${esc(i.id)}" role="checkbox" aria-checked="${i.done}"><span class="box"></span><span class="txt">${esc(i.text)}</span></button><button type="button" class="si-del" data-tdel="${esc(i.id)}" aria-label="Remove ${esc(i.text)}">×</button></li>`;
+      }).join("")
         : `<li class="shop-empty">${S.mode === "loading" ? "Loading…" : "Nothing to do here."}</li>`;
     }
   }
@@ -1190,18 +1259,27 @@ button.day:hover .dd { background: var(--line); }
     input.value = ""; input.focus();
   });
   $("todoCols").addEventListener("click", e => {
-    const c = e.target.closest("[data-tid]"), d = e.target.closest("[data-tdel]");
-    if (c) { const it = S.todo.get(c.dataset.tid); if (it) todoWrite({ ...it, done: !it.done, doneAt: it.done ? 0 : Date.now() }); }
+    const c = e.target.closest("[data-tid]"), d = e.target.closest("[data-tdel]"), ch = e.target.closest("[data-cid]");
+    if (ch) { const it = getItem(ch.dataset.cid); if (it) setChoreDone(it, !it.done); }
+    else if (c) { const it = S.todo.get(c.dataset.tid); if (it) todoWrite({ ...it, done: !it.done, doneAt: it.done ? 0 : Date.now() }); }
     else if (d) todoDelete([d.dataset.tdel]);
   });
   $("todoClear").addEventListener("click", () => {
-    const ids = [...S.todo.values()].filter(i => i.done).map(i => i.id);
+    const doneRows = todoRows().filter(i => i.done), ids = doneRows.filter(i => !i.chore).map(i => i.id);
     if (!todoClearArmed) {
-      todoClearArmed = true; $("todoClear").textContent = `Tap again to remove ${ids.length}`;
+      todoClearArmed = true; $("todoClear").textContent = `Tap again to remove ${doneRows.length}`;
       clearTimeout(todoClearTimer); todoClearTimer = setTimeout(() => { todoClearArmed = false; renderTodo(); }, 4000);
       return;
     }
-    todoClearArmed = false; clearTimeout(todoClearTimer); todoDelete(ids);
+    todoClearArmed = false; clearTimeout(todoClearTimer);
+    // finished chores leave this list but stay on the calendar
+    const writes = new Map();
+    for (const { chore: c } of doneRows.filter(i => i.chore)) {
+      if (c.seriesId) { const s = writes.get(c.seriesId) || { ...S.items.get(c.seriesId) }; s.clearedDates = { ...(s.clearedDates || {}), [c.occ]: true }; writes.set(c.seriesId, s); }
+      else writes.set(c.id, { ...S.items.get(c.id), cleared: true });
+    }
+    if (writes.size) commit([...writes.values()], []);
+    todoDelete(ids);
   });
 
   // ---------- phone tabs (To-Do / Calendar / Shopping). On wider screens CSS ignores data-tab and shows everything. ----------
@@ -1235,6 +1313,37 @@ button.day:hover .dd { background: var(--line); }
   // ---------- dragging (works across week rows in month view) ----------
   let drag = null;
   const view = $("view");
+  // A finger on an item scrolls like anywhere else; holding still on it for a moment picks it up.
+  // Until then the browser may scroll (which cancels the hold); once picked up, scrolling is blocked.
+  let hold = null;
+  function startHold(e, it, pickUp) {
+    cancelHold();
+    const pid = e.pointerId;
+    hold = { x: e.clientX, y: e.clientY, it, timer: setTimeout(() => {
+      hold = null; pickUp();
+      try { view.setPointerCapture(pid); } catch (_) {}
+      try { navigator.vibrate && navigator.vibrate(12); } catch (_) {}
+    }, 400) };
+  }
+  function cancelHold() { if (hold) { clearTimeout(hold.timer); hold = null; } }
+  view.addEventListener("pointermove", e => { if (hold && Math.hypot(e.clientX - hold.x, e.clientY - hold.y) > 8) cancelHold(); });
+  view.addEventListener("pointerup", e => {
+    if (!hold) return;
+    const h = hold; cancelHold();
+    if (Math.hypot(e.clientX - h.x, e.clientY - h.y) <= 8) openEditor(h.it); // a quick tap opens it
+  });
+  view.addEventListener("pointercancel", cancelHold);
+  // Block scrolling while an item is picked up. Touch events keep going to the element the finger
+  // started on, even after a redraw takes it off the page, so the listener goes on that element.
+  const holding = () => (drag && drag.type !== "create") || (tdrag && tdrag.type !== "create");
+  view.addEventListener("touchstart", e => {
+    const el = e.target; if (!el.closest || !el.closest(".bar, .ev")) return;
+    const stop = ev => { if (holding()) ev.preventDefault(); };
+    const done = () => { el.removeEventListener("touchmove", stop); el.removeEventListener("touchend", done); el.removeEventListener("touchcancel", done); };
+    el.addEventListener("touchmove", stop, { passive: false });
+    el.addEventListener("touchend", done); el.addEventListener("touchcancel", done);
+  }, { passive: true });
+  view.addEventListener("contextmenu", e => { if (e.target.closest(".bar, .ev")) e.preventDefault(); });
   function dateAt(x, y) {
     for (const el of document.elementsFromPoint(x, y)) { if (el.classList && el.classList.contains("cell")) return el.dataset.date; }
     return null;
@@ -1258,7 +1367,9 @@ button.day:hover .dd { background: var(--line); }
     if (bar) {
       const it = getItem(bar.dataset.id); if (!it) return;
       const a = act && act.dataset.act;
-      drag = { type: a === "rl" ? "rl" : a === "rr" ? "rr" : "move", id: it.id, d0, x0: e.clientX, y0: e.clientY, orig: { start: it.start, end: it.end }, moved: false, preview: null, bandKey: bandEl.dataset.key, group: GROUP_OF[it.kind] ?? 1, reorder: null };
+      const pick = () => { drag = { type: a === "rl" ? "rl" : a === "rr" ? "rr" : "move", id: it.id, d0, x0: e.clientX, y0: e.clientY, orig: { start: it.start, end: it.end }, moved: false, preview: null, bandKey: bandEl.dataset.key, group: GROUP_OF[it.kind] ?? 1, reorder: null }; };
+      if (e.pointerType === "touch") { startHold(e, it, () => { pick(); renderAllBands(); }); return; }
+      pick();
     } else {
       // A finger on an empty day should scroll the calendar like normal; only a plain tap adds an item.
       if (e.pointerType === "touch") { tap = { x: e.clientX, y: e.clientY, d0, kind: cfg.kinds === "dinner" ? "dinner" : "plan" }; return; }
@@ -1364,15 +1475,7 @@ button.day:hover .dd { background: var(--line); }
   view.addEventListener("click", e => {
     const a = e.target.closest("[data-act]"); if (!a) return;
     const act = a.dataset.act;
-    if (act === "toggle") {
-      e.stopPropagation();
-      const id = a.closest("[data-id]").dataset.id, it = getItem(id);
-      if (it && it.seriesId) {
-        const s = S.items.get(it.seriesId), dd = { ...(s.doneDates || {}) };
-        if (dd[it.occ]) delete dd[it.occ]; else dd[it.occ] = true;
-        persist({ ...s, doneDates: dd });
-      } else if (it) persist({ ...it, done: !it.done });
-    } else if (act === "day") setView("day", a.dataset.date);
+    if (act === "day") setView("day", a.dataset.date);
     else if (act === "month") setView("month", a.dataset.date);
     else if (act === "add") openEditor(null, { start: S.cursor, end: S.cursor, kind: a.dataset.kind });
     else if (act === "open") { const it = getItem(a.dataset.id); if (it) openEditor(it); }
@@ -1400,8 +1503,10 @@ button.day:hover .dd { background: var(--line); }
     const ev = e.target.closest(".ev");
     if (ev) {
       const it = getItem(ev.dataset.id); if (!it || !it.tStart) return;
-      tdrag = { type: act && act.dataset.act === "rs" ? "resize" : "move", id: it.id, x0: e.clientX, y0: e.clientY,
-        orig: { start: it.start, s: toMin(it.tStart), e: endMin(it) }, moved: false, preview: null };
+      const pick = () => { tdrag = { type: act && act.dataset.act === "rs" ? "resize" : "move", id: it.id, x0: e.clientX, y0: e.clientY,
+        orig: { start: it.start, s: toMin(it.tStart), e: endMin(it) }, moved: false, preview: null }; };
+      if (e.pointerType === "touch") { startHold(e, it, () => { pick(); renderTimelineItems(); }); return; }
+      pick();
       e.preventDefault();
     } else if (e.pointerType === "touch") { ttap = { x: e.clientX, y: e.clientY, p }; return; }
     else {
@@ -1458,15 +1563,14 @@ button.day:hover .dd { background: var(--line); }
   view.addEventListener("pointercancel", () => { ttap = null; if (tdrag || tsel) { tdrag = null; tsel = null; renderTimelineItems(); } });
 
   // ---------- editor ----------
-  const KINDS = [["plan", "Plan"], ["chore", "Chore"], ["dinner", "Dinner"], ["pto", "PTO", "var(--pto-bar)"], ["away", "Out of town", "var(--away-bar)"]];
+  const KINDS = [["plan", "Plan", "var(--plan-edge)"], ["chore", "Chore", "var(--chore-edge)"], ["dinner", "Dinner", "var(--dinner-ink)"], ["away", "Out of town", "var(--away-edge)"]];
   let ed = null, delArmed = false;
   function seg(el, opts, val, onPick) {
     el.innerHTML = opts.map(([v, l, c]) => `<button type="button" data-v="${v}" aria-pressed="${v === val}">${c ? `<span class="dot" style="background:${c}"></span>` : ""}${esc(l)}</button>`).join("");
     el.onclick = e => { const b = e.target.closest("button"); if (b) onPick(b.dataset.v); };
   }
   function drawSegs() {
-    // chores moved to the To-Do lists; an older chore still shows its type so editing it keeps it a chore
-    seg($("fKind"), KINDS.filter(k => k[0] !== "chore" || ed.kind === "chore"), ed.kind, v => { ed.kind = v; drawSegs(); });
+    seg($("fKind"), KINDS, ed.kind, v => { ed.kind = v; drawSegs(); });
     seg($("fWho"), [["a", S.names.a, "var(--a)"], ["b", S.names.b, "var(--b)"], ["both", "Both", "var(--both)"]], ed.who, v => { ed.who = v; drawSegs(); });
     $("whoLbl").textContent = ed.kind === "dinner" ? "Who's cooking" : "Who";
   }
@@ -1524,6 +1628,13 @@ button.day:hover .dd { background: var(--line); }
     $("fNotes").value = ed.notes || ""; $("fErr").textContent = "";
     $("delBtn").hidden = !it; $("delBtn").textContent = "Delete";
     drawSegs(); drawRepeat(); drawNotify(); showPane(null); updateGcal();
+    // a saved chore gets a big "Mark as done" button: the only way to tick one off from the calendar
+    const canTick = !!it && it.kind === "chore";
+    $("doneBtn").hidden = !canTick;
+    if (canTick) {
+      $("doneBtn").classList.toggle("is-done", !!it.done);
+      $("doneBtn").textContent = it.done ? "✓ Done · tap to undo" : "✓ Mark as done";
+    }
     $("scrim").hidden = false;
     setTimeout(() => $("fTitle").focus(), 0);
   }
@@ -1563,7 +1674,7 @@ button.day:hover .dd { background: var(--line); }
       else if (start === end && endT <= tS) endDate = addDays(end, 1);
       dates = `${ymd(start)}T${tS.replace(":", "")}00/${ymd(endDate)}T${endT.replace(":", "")}00`;
     } else dates = `${ymd(start)}/${ymd(addDays(end, 1))}`;
-    const kindName = { plan: "Plan", chore: "Chore", dinner: "Dinner", pto: "PTO", away: "Out of town" }[ed.kind];
+    const kindName = { plan: "Plan", chore: "Chore", dinner: "Dinner", away: "Out of town" }[ed.kind];
     const details = [$("fNotes").value.trim(), `${kindName} · ${whoName(ed.who)} · from Our Week`].filter(Boolean).join("\n\n");
     const q = new URLSearchParams({ action: "TEMPLATE", text: title, dates, details });
     try { const tz = Intl.DateTimeFormat().resolvedOptions().timeZone; if (tz && tS) q.set("ctz", tz); } catch (_) {}
@@ -1660,6 +1771,7 @@ button.day:hover .dd { background: var(--line); }
     closeEditor(); commit([it], []);
   });
   $("cancelBtn").onclick = closeEditor;
+  $("doneBtn").onclick = () => { if (!ed || !ed.id) return; const it = getItem(ed.id); closeEditor(); if (it) setChoreDone(it, !it.done); };
   $("delBtn").onclick = () => {
     if (ed.seriesId) { askScope("delete", null); return; }
     if (!delArmed) { delArmed = true; $("delBtn").textContent = "Tap again to delete"; return; }
@@ -1782,7 +1894,7 @@ button.day:hover .dd { background: var(--line); }
     S.db = remote;
     remote.collection("items").onSnapshot(snap => {
       const m = new Map();
-      for (const d of snap.docs) { const v = d.data(); if (v && v.start && v.end) m.set(d.id, { id: d.id, ...v }); }
+      for (const d of snap.docs) { const v = d.data(); if (v && v.start && v.end) m.set(d.id, { id: d.id, ...v, kind: v.kind === "pto" ? "plan" : v.kind }); }
       S.items = m;
       if (!drag && !tdrag) render();
     });
