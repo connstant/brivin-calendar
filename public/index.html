@@ -170,6 +170,7 @@ button.day:hover .dd { background: var(--line); }
 .bar .h.l { left: 0; } .bar .h.r { right: 0; }
 .bar .h::after { content: ""; position: absolute; top: 25%; bottom: 25%; width: 2px; border-radius: 2px; background: currentColor; opacity: 0; }
 .bar .h.l::after { left: 3px; } .bar .h.r::after { right: 3px; }
+@media (pointer: coarse) { .bar, .ev { cursor: pointer; } .bar .h, .ev .rs { display: none; } }
 .bar:hover .h::after { opacity: .45; }
 .empty-note { position: absolute; left: 12px; bottom: 10px; color: var(--muted); font-size: 12px; pointer-events: none; }
 
@@ -608,6 +609,8 @@ button.day:hover .dd { background: var(--line); }
 </div>
 
 <script>
+  // phones/tablets: items can't be dragged there (a finger on one scrolls), only tapped
+  const TOUCH = !!(window.matchMedia && window.matchMedia("(pointer: coarse)").matches);
 (() => {
   // ---------- dates ----------
   const pad = n => String(n).padStart(2, "0");
@@ -920,7 +923,9 @@ button.day:hover .dd { background: var(--line); }
       ${bandHTML("w-dinner", { start: m, end: e, kinds: "dinner", minLanes: 1, top: 8, bh: 44, thinH: 24, tall: true, spare: true }, "dinner")}
       </div></div>`;
     renderAllBands(); renderTimelineItems();
-    $("foot").textContent = "Click or drag on the timeline to add something at a time; drag an item to move it, or its bottom edge to change when it ends. Multi-day items, PTO and trips sit in All day; things without a time sit in Anytime. Click a date to open that day.";
+    $("foot").textContent = TOUCH
+      ? "Tap the timeline to add something at a time; tap an item to edit it. Multi-day items, PTO and trips sit in All day; things without a time sit in Anytime. Tap a date to open that day."
+      : "Click or drag on the timeline to add something at a time; drag an item to move it, or its bottom edge to change when it ends. Multi-day items, PTO and trips sit in All day; things without a time sit in Anytime. Click a date to open that day.";
   }
   function renderMonth() {
     const ms = monthStart(S.cursor), me = monthEnd(S.cursor);
@@ -932,7 +937,9 @@ button.day:hover .dd { background: var(--line); }
     }
     $("view").innerHTML = `<div class="board-scroll"><div class="board">${daysHeader(sundayOf(ms), false, true)}${rows.join("")}</div></div>`;
     renderAllBands();
-    $("foot").textContent = "Drag across days to add something, including across weeks. Drag an item or its ends to move or stretch it. Click a date number to open that day. Dinners sit below plans.";
+    $("foot").textContent = TOUCH
+      ? "Tap a day to add something; tap an item to edit it. Tap a date number to open that day. Dinners sit below plans."
+      : "Drag across days to add something, including across weeks. Drag an item or its ends to move or stretch it. Click a date number to open that day. Dinners sit below plans.";
   }
   function card(it, slim) {
     const k = it.kind, span = it.start !== it.end ? `${fmtSpan(it.start, it.end)} · day ${diff(it.start, S.cursor) + 1} of ${diff(it.start, it.end) + 1}` : "";
@@ -955,7 +962,9 @@ button.day:hover .dd { background: var(--line); }
       <section class="dv-col dinner"><h2>Dinner <button type="button" class="btn" data-act="add" data-kind="dinner">+ Add</button></h2>
         ${din.length ? din.map(it => card(it)).join("") : `<div class="dv-empty">No dinner planned yet.</div>`}</section></div>`;
     renderTimelineItems();
-    $("foot").textContent = "Tap the timeline to add something at that time. Drag an item to move it, or its bottom edge to change when it ends. Click an item to edit it, or to mark a chore done.";
+    $("foot").textContent = TOUCH
+      ? "Tap the timeline to add something at that time. Tap an item to edit it, or to mark a chore done."
+      : "Tap the timeline to add something at that time. Drag an item to move it, or its bottom edge to change when it ends. Click an item to edit it, or to mark a chore done.";
   }
   function renderYear() {
     const y = +S.cursor.slice(0, 4), t = todayISO();
@@ -1313,19 +1322,12 @@ button.day:hover .dd { background: var(--line); }
   // ---------- dragging (works across week rows in month view) ----------
   let drag = null;
   const view = $("view");
-  // A finger on an item scrolls like anywhere else; holding still on it for a moment picks it up.
-  // Until then the browser may scroll (which cancels the hold); once picked up, scrolling is blocked.
+  // On touch, items can't be dragged at all, so a finger on one always scrolls the calendar.
+  // A quick tap (finger barely moved) opens it; moving, resizing and reordering is done in the editor
+  // or with a mouse.
   let hold = null;
-  function startHold(e, it, pickUp) {
-    cancelHold();
-    const pid = e.pointerId;
-    hold = { x: e.clientX, y: e.clientY, it, timer: setTimeout(() => {
-      hold = null; pickUp();
-      try { view.setPointerCapture(pid); } catch (_) {}
-      try { navigator.vibrate && navigator.vibrate(12); } catch (_) {}
-    }, 400) };
-  }
-  function cancelHold() { if (hold) { clearTimeout(hold.timer); hold = null; } }
+  function startHold(e, it) { hold = { x: e.clientX, y: e.clientY, it }; }
+  function cancelHold() { hold = null; }
   view.addEventListener("pointermove", e => { if (hold && Math.hypot(e.clientX - hold.x, e.clientY - hold.y) > 8) cancelHold(); });
   view.addEventListener("pointerup", e => {
     if (!hold) return;
@@ -1333,16 +1335,6 @@ button.day:hover .dd { background: var(--line); }
     if (Math.hypot(e.clientX - h.x, e.clientY - h.y) <= 8) openEditor(h.it); // a quick tap opens it
   });
   view.addEventListener("pointercancel", cancelHold);
-  // Block scrolling while an item is picked up. Touch events keep going to the element the finger
-  // started on, even after a redraw takes it off the page, so the listener goes on that element.
-  const holding = () => (drag && drag.type !== "create") || (tdrag && tdrag.type !== "create");
-  view.addEventListener("touchstart", e => {
-    const el = e.target; if (!el.closest || !el.closest(".bar, .ev")) return;
-    const stop = ev => { if (holding()) ev.preventDefault(); };
-    const done = () => { el.removeEventListener("touchmove", stop); el.removeEventListener("touchend", done); el.removeEventListener("touchcancel", done); };
-    el.addEventListener("touchmove", stop, { passive: false });
-    el.addEventListener("touchend", done); el.addEventListener("touchcancel", done);
-  }, { passive: true });
   view.addEventListener("contextmenu", e => { if (e.target.closest(".bar, .ev")) e.preventDefault(); });
   function dateAt(x, y) {
     for (const el of document.elementsFromPoint(x, y)) { if (el.classList && el.classList.contains("cell")) return el.dataset.date; }
@@ -1368,7 +1360,7 @@ button.day:hover .dd { background: var(--line); }
       const it = getItem(bar.dataset.id); if (!it) return;
       const a = act && act.dataset.act;
       const pick = () => { drag = { type: a === "rl" ? "rl" : a === "rr" ? "rr" : "move", id: it.id, d0, x0: e.clientX, y0: e.clientY, orig: { start: it.start, end: it.end }, moved: false, preview: null, bandKey: bandEl.dataset.key, group: GROUP_OF[it.kind] ?? 1, reorder: null }; };
-      if (e.pointerType === "touch") { startHold(e, it, () => { pick(); renderAllBands(); }); return; }
+      if (e.pointerType === "touch") { startHold(e, it); return; }
       pick();
     } else {
       // A finger on an empty day should scroll the calendar like normal; only a plain tap adds an item.
@@ -1505,7 +1497,7 @@ button.day:hover .dd { background: var(--line); }
       const it = getItem(ev.dataset.id); if (!it || !it.tStart) return;
       const pick = () => { tdrag = { type: act && act.dataset.act === "rs" ? "resize" : "move", id: it.id, x0: e.clientX, y0: e.clientY,
         orig: { start: it.start, s: toMin(it.tStart), e: endMin(it) }, moved: false, preview: null }; };
-      if (e.pointerType === "touch") { startHold(e, it, () => { pick(); renderTimelineItems(); }); return; }
+      if (e.pointerType === "touch") { startHold(e, it); return; }
       pick();
       e.preventDefault();
     } else if (e.pointerType === "touch") { ttap = { x: e.clientX, y: e.clientY, p }; return; }
